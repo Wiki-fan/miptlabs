@@ -248,7 +248,7 @@ def get_nparray_from_PQs(pqs):
 def plt_pq(grid, values, label=None, color=None, ols=False, grid_x=None,
            grid_y=None):
     """
-    Строит графики. С крестами погрешностей. ols=True рисует ещё и прямую, приближающую значения по НМК.
+    Строит графики. С крестами погрешностей. ols=True рисует ещё и прямую, приближающую значения по МНК.
     Вызовы plt.figure и plt.show должны быть снаружи.
     Можно добавлять подписи к осям и прочее.
     """
@@ -309,6 +309,11 @@ def plt_pq(grid, values, label=None, color=None, ols=False, grid_x=None,
 
     if label is not None:
         plt.legend()
+
+    if type(grid[0]) is PQ:
+        plt.xlabel(ax.get_xlabel() + str(grid[0].dim))
+    if type(values[0]) is PQ:
+        plt.ylabel(ax.get_ylabel() + str(values[0].dim))
 
     if ols == True:
         ols_coefs, ols_errors = OLS(grid, values)
