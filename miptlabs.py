@@ -7,6 +7,14 @@ import logging as log
 
 # TODO: pretty printing
 class PQ:
+    eps = 10e-5
+
+    def get_dim_from_args(val):
+        return np.prod([elem for elem in val.args[1:] if type(elem) != u.dimensions.Dimension])
+
+    def get_from_array(lambd, arr):
+        return np.array([lambd(elem) for elem in arr])
+
     def __init__(self, val, dim=None, sigma=None, epsilon=None, symbol=None,
                  is_const=False):
         """
@@ -21,21 +29,24 @@ class PQ:
             Иначе же за погрешность надо брать последнюю цифру (не реализовано).
         """
 
+        if type(val) is PQ:
+            raise Exception("Не пытайтесь передать PQ как val или sigma. Явно пропишите к нему .val")
+
         if dim is not None:
             self.dim = dim
-        elif PQ.is_simple_type(val):
+        elif not hasattr(val, 'args'):
             self.dim = 1
         else:
-            self.dim = np.prod([elem for elem in val.args[1:] if type(elem) != u.dimensions.Dimension])
+            self.dim = PQ.get_dim_from_args(val)
 
         self.val = u.convert_to(val, self.dim)
 
         if sigma is not None:
-            self.sigma = u.convert_to(sigma, dim)
+            self.sigma = u.convert_to(sigma, self.dim)
             self.epsilon = u.convert_to(self.sigma/self.val, sp.numbers.Integer(1))
         elif epsilon is not None:
             self.epsilon = u.convert_to(epsilon, sp.numbers.Integer(1))
-            self.sigma = u.convert_to(self.val*self.epsilon, dim)
+            self.sigma = u.convert_to(self.val*self.epsilon, self.dim)
         else:
             if is_const:
                 self.sigma = self.epsilon = 0
@@ -129,29 +140,60 @@ class PQ:
         return eval(self.dim, lambda self, other: self - other, self, other)
 
     def __mul__(self, other):
-        return eval(self.dim if PQ.is_simple_type(other) else self.dim*other.dim,
+        new_dim = None
+        if type(other) is PQ:
+            new_dim = self.dim*other.dim
+        elif hasattr(other, 'args'):
+            new_dim = self.dim*PQ.get_dim_from_args(other)
+        else:
+            new_dim = self.dim
+
+        return eval(new_dim,
                     lambda self, other: self*other, self, other)
 
     def __rmul__(self, other):
-        return eval(self.dim if PQ.is_simple_type(other) else self.dim*other.dim,
+        new_dim = None
+        if type(other) is PQ:
+            new_dim = self.dim*other.dim
+        elif hasattr(other, 'args'):
+            new_dim = self.dim*PQ.get_dim_from_args(other)
+        else:
+            new_dim = self.dim
+
+        return eval(new_dim,
                     lambda self, other: self*other, self, other)
 
     def __truediv__(self, other):
-        return eval(self.dim if PQ.is_simple_type(other) else self.dim/other.dim,
+        new_dim = None
+        if type(other) is PQ:
+            new_dim = self.dim/other.dim
+        elif hasattr(other, 'args'):
+            new_dim = self.dim/PQ.get_dim_from_args(other)
+        else:
+            new_dim = self.dim
+
+        return eval(new_dim,
                     lambda self, other: self/other, self, other)
 
     def __rtruediv__(self, other):
-        return eval(1/self.dim if PQ.is_simple_type(other) else other.dim/self.dim,
+        new_dim = None
+        if type(other) is PQ:
+            new_dim = self.dim/other.dim
+        elif hasattr(other, 'args'):
+            new_dim = PQ.get_dim_from_args(other)/self.dim
+        else:
+            new_dim = 1/self.dim
+        print('new_dim ', new_dim)
+
+        return eval(new_dim,
                     lambda self, other: other/self, self, other)
 
     def __pow__(self, power, modulo=None):
-        return eval(self.dim**power if PQ.is_simple_type(power) else self.dim**power.dim,
-                    lambda self, other: self**power, self, power)
+        if type(power) not in {int, float, np.float64}:
+            raise Exception('Тип степени %s. Возводить в степень, которая не число, нельзя.'%type(power))
 
-    def is_simple_type(arg):
-        return type(arg) is int or type(arg) is float or type(arg) is np.float64 \
-               or type(arg) is u.quantities.Quantity #or type(arg) is sympy.Mul
-        #return type(arg) is not PQ and type(arg) is not np.ndarray
+        return eval(self.dim**power,
+                    lambda self, other: self**power, self, power)
 
 
 # TODO: Узнавать, какая величина давала наибольший вклад в погрешность.
@@ -170,7 +212,7 @@ def eval(dim, lambd, *args, symbol=None):
     log.debug('args: %s', args)
 
     for i in range(len(args)):
-        if PQ.is_simple_type(args[i]):
+        if type(args[i]) is not PQ:
             args[i] = PQ(args[i], is_const=True)
     log.debug('args converted to PQ: %s', args)
 
@@ -195,47 +237,116 @@ def eval(dim, lambd, *args, symbol=None):
     return PQ(new_val, sigma=new_sigma, symbol=symbol, dim=dim)
 
 
-def plt_pq(grid, values, label=None, color=None, ols=False):
+def get_nparray_from_PQs(pqs):
+    vals = PQ.get_from_array(lambda elem: elem.val, pqs)
+    sigmas = PQ.get_from_array(lambda elem: elem.sigma, pqs)
+    x = (vals/pqs[0].dim).astype(float)
+    x_s = (sigmas/pqs[0].dim).astype(float)
+    return (x, x_s)
+
+
+def plt_pq(grid, values, label=None, color=None, ols=False, grid_x=None,
+           grid_y=None):
     """
     Строит графики. С крестами погрешностей. ols=True рисует ещё и прямую, приближающую значения по НМК.
     Вызовы plt.figure и plt.show должны быть снаружи.
     Можно добавлять подписи к осям и прочее.
     """
 
-    def get(lambd, arr):
-        return np.array([lambd(elem) for elem in arr])
+    if type(grid[0]) is PQ:
+        x, x_s = get_nparray_from_PQs(grid)
+    else:
+        x = grid
+        x_s = 0
 
-    vals = get(lambda elem: elem.val, values)
-    sigmas = get(lambda elem: elem.sigma, values)
+    if type(values[0]) is PQ:
+        y, y_s = get_nparray_from_PQs(values)
+    else:
+        y = values
+        y_s = 0
 
-    y = (vals/values[0].dim).astype(float)
-    y_s = (sigmas/values[0].dim).astype(float)
-    line = plt.plot(grid, y, color=color, label=label, zorder=1)
-    plt.errorbar(grid, y, xerr=0, yerr=y_s, color=line[0].get_color(), zorder=1)
-    plt.scatter(grid, y, color=line[0].get_color(), zorder=2)
+    line = plt.plot(x, y, color=color, label=label, zorder=2)
+    plt.errorbar(x, y, xerr=x_s, yerr=y_s, color=line[0].get_color(), zorder=3)
+    plt.scatter(x, y, color=line[0].get_color(), zorder=4, alpha=0.2)
+
+    ax = plt.axes()
+    if grid_y is not None:
+        try:
+            length = len(grid_y)
+        except:
+            length = 1
+
+        if length > 1:
+            major = grid_y[0]
+            minor = grid_y[1]
+        else:
+            major = grid_y
+            minor = grid_y/5
+
+        yticks_major = np.arange(plt.ylim()[0], plt.ylim()[1] + PQ.eps, major)
+        ax.set_yticks(yticks_major)
+        if minor != 0:
+            yticks_minor = np.arange(plt.ylim()[0], plt.ylim()[1] + PQ.eps, minor)
+            ax.set_yticks(yticks_minor, minor=True)
+    if grid_x is not None:
+        try:
+            length = len(grid_x)
+        except:
+            length = 1
+        if length > 1:
+            major = grid_x[0]
+            minor = grid_x[1]
+        else:
+            major = grid_x
+            minor = grid_x/5
+        xticks_major = np.arange(plt.xlim()[0], plt.xlim()[1] + PQ.eps, major)
+        ax.set_xticks(xticks_major)
+        if minor != 0:
+            xticks_minor = np.arange(plt.xlim()[0], plt.xlim()[1] + PQ.eps, minor)
+            ax.set_xticks(xticks_minor, minor=True)
+    ax.grid(axis='both', color='black')
+    ax.grid(axis='both', which='minor', color='gray')
+
+    if label is not None:
+        plt.legend()
 
     if ols == True:
         ols_coefs, ols_errors = OLS(grid, values)
-        x1 = grid[0]-1
-        x2 = grid[-1] + 1
+        x1 = x[0] - PQ.eps
+        x2 = x[-1] + PQ.eps
         y1 = ols_coefs[0]*x1 + ols_coefs[1]
         y2 = ols_coefs[0]*x2 + ols_coefs[1]
         plt.plot([x1, x2], [y1, y2], color='black',
-                 linestyle='dashed', zorder=3,
-                 label='OLS for %s'%label if label is not None else None)
-
-    plt.grid()
-    plt.legend()
+                 linestyle='dashed', zorder=5,
+                 label='OLS for %s'%label)
 
 
-def OLS(x, y):
-    if type(y[0]) is PQ:
-        y = np.array([float(pq.val/y[0].dim) for pq in y])
+def OLS(grid, values):
+    """
+    Коэффициенты и погрешности начиная с наивысшей степени.
+    """
+    if type(grid[0]) is PQ:
+        x, x_s = get_nparray_from_PQs(grid)
+    else:
+        x = grid
+        x_s = 0
+
+    if type(values[0]) is PQ:
+        y, y_s = get_nparray_from_PQs(values)
+    else:
+        y = values
+        y_s = 0
     coefs = np.polyfit(x, y, deg=1)
-    sigma_b = 1/np.sqrt(len(y))*np.sqrt((np.mean(y**2)-np.mean(y)**2)/(np.mean(x**2)-np.mean(x)**2)-coefs[0]**2)
-    sigma_a = sigma_b*(np.mean(x**2)-np.mean(x)**2)
+    sigma_b = 1/np.sqrt(len(y))*np.sqrt((np.mean(y**2) - np.mean(y)**2)/(np.mean(x**2) - np.mean(x)**2) - coefs[0]**2)
+    sigma_a = sigma_b*(np.mean(x**2) - np.mean(x)**2)
     errors = [sigma_b, sigma_a]
     return coefs, errors
 
+
 def celsium_to_kelvins(c):
-    return (c+273.15)*u.kelvins
+    return (c + 273.15)*u.kelvins
+
+
+def repr_ndarray_as(arr, dim):
+    arr = np.array([val.repr_as(dim) for val in arr])
+    return arr

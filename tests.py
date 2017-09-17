@@ -2,6 +2,12 @@ import unittest
 from miptlabs import *
 import miptlabs as ml
 
+a = ml.PQ(1*u.m, dim=u.meter, sigma=1*u.mm) # Почему meter/m не считается?
+b = ml.PQ(2*u.m, sigma=1*u.mm)
+c = ml.PQ(2*u.m, sigma=1*u.mm)
+t = ml.PQ(2*u.s,  sigma=0.01*u.s)
+
+print((b/u.s))
 
 class TestPE(unittest.TestCase):
     def test_print_rounded(self):
