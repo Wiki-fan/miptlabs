@@ -10,7 +10,8 @@ class PQ:
     eps = 10e-5
 
     def get_dim_from_args(val):
-        return np.prod([elem for elem in val.args[1:] if type(elem) != u.dimensions.Dimension])
+        return np.prod([elem for elem in val.args
+                        if type(elem) != u.dimensions.Dimension and not PQ.is_numeral_type(type(elem))])
 
     def get_from_array(lambd, arr):
         return np.array([lambd(elem) for elem in arr])
@@ -169,6 +170,7 @@ class PQ:
             new_dim = self.dim/other.dim
         elif hasattr(other, 'args'):
             new_dim = self.dim/PQ.get_dim_from_args(other)
+            print('derived_dim', new_dim, other.args)
         else:
             new_dim = self.dim
 
@@ -183,18 +185,19 @@ class PQ:
             new_dim = PQ.get_dim_from_args(other)/self.dim
         else:
             new_dim = 1/self.dim
-        print('new_dim ', new_dim)
 
         return eval(new_dim,
                     lambda self, other: other/self, self, other)
 
     def __pow__(self, power, modulo=None):
-        if type(power) not in {int, float, np.float64}:
+        if not PQ.is_numeral_type(type(power)):
             raise Exception('Тип степени %s. Возводить в степень, которая не число, нельзя.'%type(power))
 
         return eval(self.dim**power,
                     lambda self, other: self**power, self, power)
-
+    
+    def is_numeral_type(t):
+        return t in {int, float, np.float64, sp.numbers.Integer, sp}
 
 # TODO: Узнавать, какая величина давала наибольший вклад в погрешность.
 def eval(dim, lambd, *args, symbol=None):
@@ -246,7 +249,7 @@ def get_nparray_from_PQs(pqs):
 
 
 def plt_pq(grid, values, label=None, color=None, ols=False, grid_x=None,
-           grid_y=None):
+           grid_y=None, plot=plt.plot):
     """
     Строит графики. С крестами погрешностей. ols=True рисует ещё и прямую, приближающую значения по МНК.
     Вызовы plt.figure и plt.show должны быть снаружи.
@@ -265,7 +268,7 @@ def plt_pq(grid, values, label=None, color=None, ols=False, grid_x=None,
         y = values
         y_s = 0
 
-    line = plt.plot(x, y, color=color, label=label, zorder=2)
+    line = plot(x, y, color=color, label=label, zorder=2)
     plt.errorbar(x, y, xerr=x_s, yerr=y_s, color=line[0].get_color(), zorder=3)
     plt.scatter(x, y, color=line[0].get_color(), zorder=4, alpha=0.2)
 
@@ -288,6 +291,7 @@ def plt_pq(grid, values, label=None, color=None, ols=False, grid_x=None,
         if minor != 0:
             yticks_minor = np.arange(plt.ylim()[0], plt.ylim()[1] + PQ.eps, minor)
             ax.set_yticks(yticks_minor, minor=True)
+
     if grid_x is not None:
         try:
             length = len(grid_x)
@@ -321,7 +325,7 @@ def plt_pq(grid, values, label=None, color=None, ols=False, grid_x=None,
         x2 = x[-1] + PQ.eps
         y1 = ols_coefs[0]*x1 + ols_coefs[1]
         y2 = ols_coefs[0]*x2 + ols_coefs[1]
-        plt.plot([x1, x2], [y1, y2], color='black',
+        plot([x1, x2], [y1, y2], color='black',
                  linestyle='dashed', zorder=5,
                  label='OLS for %s'%label)
 
