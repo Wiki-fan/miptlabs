@@ -10,8 +10,10 @@ class PQ:
     eps = 10e-5
 
     def get_dim_from_args(val):
+        log.debug("val.args in get_dim_from_args: %s"%str(val.args))
+        log.debug("with types: %s"%str([type(elem) for elem in val.args]))
         return np.prod([elem for elem in val.args
-                        if type(elem) != u.dimensions.Dimension and not PQ.is_numeral_type(type(elem))])
+                        if type(elem) != u.dimensions.Dimension and not is_numeral_type(type(elem))])
 
     def get_from_array(lambd, arr):
         return np.array([lambd(elem) for elem in arr])
@@ -195,9 +197,10 @@ class PQ:
 
         return eval(self.dim**power,
                     lambda self, other: self**power, self, power)
-    
-    def is_numeral_type(t):
-        return t in {int, float, np.float64, sp.numbers.Integer, sp}
+
+
+def is_numeral_type(t):
+    return t in {int, float, np.float64, sp} or issubclass(t, sp.numbers.Number)
 
 # TODO: Узнавать, какая величина давала наибольший вклад в погрешность.
 def eval(dim, lambd, *args, symbol=None):
