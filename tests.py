@@ -2,28 +2,28 @@ import unittest
 from miptlabs import *
 import miptlabs as ml
 
-a = ml.PQ(1*u.m, dim=u.meter, sigma=1*u.mm) # Почему meter/m не считается?
-b = ml.PQ(2*u.m, sigma=1*u.mm)
-c = ml.PQ(2*u.m, sigma=1*u.mm)
-t = ml.PQ(2*u.s,  sigma=0.01*u.s)
+a = ml.pq(1*u.m, dim=u.meter, sigma=1*u.mm) # Почему meter/m не считается?
+b = ml.pq(2*u.m, sigma=1*u.mm)
+c = ml.pq(2*u.m, sigma=1*u.mm)
+t = ml.pq(2*u.s, sigma=0.01*u.s)
 
 print((b/u.s))
 
 class TestPE(unittest.TestCase):
     def test_print_rounded(self):
         a = PQ(12345.6*u.m, sigma=3*u.m, dim=u.m)
-        print(a.repr_rounded_as(u.m))
+        print(a.str_rounded_as(u.m))
         b = PQ(12345.4*u.m, sigma=3*u.m, dim=u.m)
-        print(b.repr_rounded_as(u.m))
+        print(b.str_rounded_as(u.m))
         c = PQ(0.4*u.m, sigma=3*u.m, dim=u.m)
-        print(c.repr_rounded_as(u.m))
+        print(c.str_rounded_as(u.m))
         d = PQ(0.4*u.m, sigma=0.03*u.m, dim=u.m)
-        print(d.repr_rounded_as(u.m))
+        print(d.str_rounded_as(u.m))
 
     def test_opers(self):
-        a = ml.PQ(1*u.m, dim=u.m, sigma=1*u.mm)
-        b = ml.PQ(2*u.m, dim=u.m, sigma=1*u.mm)
-        c = ml.PQ(2*u.m, dim=u.m, sigma=1*u.mm)
+        a = ml.pq(1*u.m, dim=u.m, sigma=1*u.mm)
+        b = ml.pq(2*u.m, dim=u.m, sigma=1*u.mm)
+        c = ml.pq(2*u.m, dim=u.m, sigma=1*u.mm)
         # type(u.m)
         # u.convert_to(a.sigma, a.dim)
         ml.eval(a.dim, lambda a, b: a + b, a, b)
