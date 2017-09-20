@@ -3,6 +3,7 @@ import sympy.physics.units as u
 import numpy as np
 import logging as log
 
+
 # TODO: pretty printing
 class PQ:
     eps = 10e-5
@@ -87,7 +88,7 @@ class PQ:
         print(self.epsilon)
 
     def __str__(self):
-        return self.str_as(self.dim)
+        return self.str_rounded_as(self.dim)
 
     def __repr__(self):
         return self.__str__()
@@ -120,14 +121,14 @@ class PQ:
         # print(num_sign_dig)
         # msd_percents = most_significant_digit(float_epsilon) TODO: решить, что делать здесь
         # print(msd_percents)
-        return '%*.*f±%*.*f %s (%f%%)'%(
+        return '%*.*f±%*.*f %s (%.2f%%)'%(
             num_sign_dig if msd - num_sign_dig >= 0 else msd,
             0 if msd - num_sign_dig >= 0 else num_sign_dig - msd,
             round(float_val/10**(msd - num_sign_dig))*10**(msd - num_sign_dig),
             num_sign_dig if msd - num_sign_dig >= 0 else msd,
             0 if msd - num_sign_dig >= 0 else num_sign_dig - msd,
             round(float_sigma/10**(msd - num_sign_dig))*10**(msd - num_sign_dig),
-            dim,
+            '' if dim == 1 else dim,
             float_percents)
 
     def __add__(self, other):
@@ -193,6 +194,7 @@ class PQ:
 def is_numeral_type(t):
     return t in {int, float, np.float64, sp} or issubclass(t, sp.numbers.Number)
 
+
 # TODO: Узнавать, какая величина давала наибольший вклад в погрешность.
 def eval(dim, lambd, *args, symbol=None):
     """
@@ -230,6 +232,7 @@ def eval(dim, lambd, *args, symbol=None):
     log.debug('sigma %s', new_sigma)
 
     return PQ(new_val, sigma=new_sigma, symbol=symbol, dim=dim)
+
 
 def celsium_to_kelvins(c):
     return (c + 273.15)*u.kelvins
