@@ -1,20 +1,16 @@
-import sympy as sp
-import sympy.physics.units as u
-import numpy as np
-import matplotlib.pyplot as plt
-import logging as log
-
 
 # TODO: pretty printing
 class PQ:
     eps = 10e-5
 
+    @staticmethod
     def get_dim_from_args(val):
         log.debug("val.args in get_dim_from_args: %s"%str(val.args))
         log.debug("with types: %s"%str([type(elem) for elem in val.args]))
         return np.prod([elem for elem in val.args
                         if type(elem) != u.dimensions.Dimension and not is_numeral_type(type(elem))])
 
+    @staticmethod
     def get_from_array(lambd, arr):
         return np.array([lambd(elem) for elem in arr])
 
@@ -93,7 +89,7 @@ class PQ:
         return self.__str__()
 
     # TODO
-    def repr_rounded_as(self, dim=None):
+    def str_rounded_as(self, dim=None):
         if dim is None:
             dim = self.dim
 
@@ -101,10 +97,10 @@ class PQ:
         float_sigma = float(u.convert_to(self.sigma, dim).n()/dim)
         float_percents = float(u.convert_to(self.epsilon, sp.numbers.Integer(1)))*100
 
-        # print(float_val, float_sigma, float_percents)
+        log.debug("%f %f %f"%(float_val, float_sigma, float_percents))
 
         def most_significant_digit(x):
-            return int(sp.floor(sp.log(sp.Abs(x), 10))) + 1
+            return int(sp.floor(sp.log(sp.Abs(x), 20))) + 1
 
         def get_significant_digits(x, n):
             return round(x, n - most_significant_digit(x) - 1)
@@ -143,7 +139,6 @@ class PQ:
         return eval(self.dim, lambda self, other: self - other, self, other)
 
     def __mul__(self, other):
-        new_dim = None
         if type(other) is PQ:
             new_dim = self.dim*other.dim
         elif hasattr(other, 'args'):
@@ -151,11 +146,9 @@ class PQ:
         else:
             new_dim = self.dim
 
-        return eval(new_dim,
-                    lambda self, other: self*other, self, other)
+        return eval(new_dim, lambda self, other: self*other, self, other)
 
     def __rmul__(self, other):
-        new_dim = None
         if type(other) is PQ:
             new_dim = self.dim*other.dim
         elif hasattr(other, 'args'):
@@ -163,11 +156,9 @@ class PQ:
         else:
             new_dim = self.dim
 
-        return eval(new_dim,
-                    lambda self, other: self*other, self, other)
+        return eval(new_dim, lambda self, other: self*other, self, other)
 
     def __truediv__(self, other):
-        new_dim = None
         if type(other) is PQ:
             new_dim = self.dim/other.dim
         elif hasattr(other, 'args'):
@@ -176,11 +167,9 @@ class PQ:
         else:
             new_dim = self.dim
 
-        return eval(new_dim,
-                    lambda self, other: self/other, self, other)
+        return eval(new_dim, lambda self, other: self/other, self, other)
 
     def __rtruediv__(self, other):
-        new_dim = None
         if type(other) is PQ:
             new_dim = self.dim/other.dim
         elif hasattr(other, 'args'):
@@ -188,15 +177,13 @@ class PQ:
         else:
             new_dim = 1/self.dim
 
-        return eval(new_dim,
-                    lambda self, other: other/self, self, other)
+        return eval(new_dim, lambda self, other: other/self, self, other)
 
     def __pow__(self, power, modulo=None):
-        if not PQ.is_numeral_type(type(power)):
+        if not is_numeral_type(type(power)):
             raise Exception('Тип степени %s. Возводить в степень, которая не число, нельзя.'%type(power))
 
-        return eval(self.dim**power,
-                    lambda self, other: self**power, self, power)
+        return eval(self.dim**power, lambda self, other: self**power, self, power)
 
 
 def is_numeral_type(t):
@@ -206,11 +193,9 @@ def is_numeral_type(t):
 def eval(dim, lambd, *args, symbol=None):
     """
     Вычисляет новую PE по формуле и пересчитывает погрешности как надо.
-    :param dim: Желаемая величина
+    :param dim: Размерность желаемой величины.
     :param lambd: Функция, которая будет вычисляться. Обычно в виде лямбды.
-    :param args: Параметры, которые надо передавать функции. Обязательно должны быть PQ.
-        Если нужны какие-нибудь другие параметры, например int, следует оформлять их как частичное применение функции
-        или как-нибудь ещё.
+    :param args: Параметры, которые надо передавать функции.
     :param symbol: можно особо указать sympy символ (зачем?)
     :return: Новое PQ.
     """
@@ -242,123 +227,5 @@ def eval(dim, lambd, *args, symbol=None):
 
     return PQ(new_val, sigma=new_sigma, symbol=symbol, dim=dim)
 
-
-def get_nparray_from_PQs(pqs):
-    vals = PQ.get_from_array(lambda elem: elem.val, pqs)
-    sigmas = PQ.get_from_array(lambda elem: elem.sigma, pqs)
-    x = (vals/pqs[0].dim).astype(float)
-    x_s = (sigmas/pqs[0].dim).astype(float)
-    return (x, x_s)
-
-
-def plt_pq(grid, values, label=None, color=None, ols=False, grid_x=None,
-           grid_y=None, plot=plt.plot):
-    """
-    Строит графики. С крестами погрешностей. ols=True рисует ещё и прямую, приближающую значения по МНК.
-    Вызовы plt.figure и plt.show должны быть снаружи.
-    Можно добавлять подписи к осям и прочее.
-    """
-
-    if type(grid[0]) is PQ:
-        x, x_s = get_nparray_from_PQs(grid)
-    else:
-        x = grid
-        x_s = 0
-
-    if type(values[0]) is PQ:
-        y, y_s = get_nparray_from_PQs(values)
-    else:
-        y = values
-        y_s = 0
-
-    line = plot(x, y, color=color, label=label, zorder=2)
-    plt.errorbar(x, y, xerr=x_s, yerr=y_s, color=line[0].get_color(), zorder=3)
-    plt.scatter(x, y, color=line[0].get_color(), zorder=4, alpha=0.2)
-
-    ax = plt.axes()
-    if grid_y is not None:
-        try:
-            length = len(grid_y)
-        except:
-            length = 1
-
-        if length > 1:
-            major = grid_y[0]
-            minor = grid_y[1]
-        else:
-            major = grid_y
-            minor = grid_y/5
-
-        yticks_major = np.arange(plt.ylim()[0], plt.ylim()[1] + PQ.eps, major)
-        ax.set_yticks(yticks_major)
-        if minor != 0:
-            yticks_minor = np.arange(plt.ylim()[0], plt.ylim()[1] + PQ.eps, minor)
-            ax.set_yticks(yticks_minor, minor=True)
-
-    if grid_x is not None:
-        try:
-            length = len(grid_x)
-        except:
-            length = 1
-        if length > 1:
-            major = grid_x[0]
-            minor = grid_x[1]
-        else:
-            major = grid_x
-            minor = grid_x/5
-        xticks_major = np.arange(plt.xlim()[0], plt.xlim()[1] + PQ.eps, major)
-        ax.set_xticks(xticks_major)
-        if minor != 0:
-            xticks_minor = np.arange(plt.xlim()[0], plt.xlim()[1] + PQ.eps, minor)
-            ax.set_xticks(xticks_minor, minor=True)
-    ax.grid(axis='both', color='black')
-    ax.grid(axis='both', which='minor', color='gray')
-
-    if label is not None:
-        plt.legend()
-
-    if type(grid[0]) is PQ:
-        plt.xlabel(ax.get_xlabel() + str(grid[0].dim))
-    if type(values[0]) is PQ:
-        plt.ylabel(ax.get_ylabel() + str(values[0].dim))
-
-    if ols == True:
-        ols_coefs, ols_errors = OLS(grid, values)
-        x1 = x[0] - PQ.eps
-        x2 = x[-1] + PQ.eps
-        y1 = ols_coefs[0]*x1 + ols_coefs[1]
-        y2 = ols_coefs[0]*x2 + ols_coefs[1]
-        plot([x1, x2], [y1, y2], color='black',
-                 linestyle='dashed', zorder=5,
-                 label='OLS for %s'%label)
-
-
-def OLS(grid, values):
-    """
-    Коэффициенты и погрешности начиная с наивысшей степени.
-    """
-    if type(grid[0]) is PQ:
-        x, x_s = get_nparray_from_PQs(grid)
-    else:
-        x = grid
-        x_s = 0
-
-    if type(values[0]) is PQ:
-        y, y_s = get_nparray_from_PQs(values)
-    else:
-        y = values
-        y_s = 0
-    coefs = np.polyfit(x, y, deg=1)
-    sigma_b = 1/np.sqrt(len(y))*np.sqrt((np.mean(y**2) - np.mean(y)**2)/(np.mean(x**2) - np.mean(x)**2) - coefs[0]**2)
-    sigma_a = sigma_b*(np.mean(x**2) - np.mean(x)**2)
-    errors = [sigma_b, sigma_a]
-    return coefs, errors
-
-
 def celsium_to_kelvins(c):
     return (c + 273.15)*u.kelvins
-
-
-def repr_ndarray_as(arr, dim):
-    arr = np.array([val.repr_as(dim) for val in arr])
-    return arr
