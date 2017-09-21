@@ -11,13 +11,13 @@ def plt_pq(grid, values, label=None, color=None, ols=False, grid_x=None,
     """
 
     if type(grid[0]) is PQ:
-        x, x_s = get_nparray_from_PQs(grid)
+        x, x_s = grid.val_float, grid.sigma_float #get_nparray_from_PQs(grid)
     else:
         x = grid
         x_s = 0
 
     if type(values[0]) is PQ:
-        y, y_s = get_nparray_from_PQs(values)
+        y, y_s = values.val_float, values.sigma_float #get_nparray_from_PQs(values)
     else:
         y = values
         y_s = 0
@@ -82,7 +82,7 @@ def plot_OLS(grid, values, plot=plt.plot, label=None):
     :returns (ols_coefs, ols_errors)"""
     ols_coefs, ols_errors = OLS(grid, values)
     if type(grid[0]) is PQ:
-        x, x_s = get_nparray_from_PQs(grid)
+        x, x_s = grid.val_float, grid.sigma_float
     else:
         x = grid
         x_s = 0
@@ -99,13 +99,13 @@ def OLS(grid, values):
     :returns Коэффициенты и погрешности начиная с наивысшей степени.
     """
     if type(grid[0]) is PQ:
-        x, x_s = get_nparray_from_PQs(grid)
+        x, x_s = grid.val_float, grid.sigma_float
     else:
         x = grid
         x_s = 0
 
     if type(values[0]) is PQ:
-        y, y_s = get_nparray_from_PQs(values)
+        y, y_s = values.val_float, values.sigma_float
     else:
         y = values
         y_s = 0

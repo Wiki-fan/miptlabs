@@ -2,7 +2,7 @@ import sympy as sp
 import sympy.physics.units as u
 import numpy as np
 import logging as log
-
+from .arrays import *
 
 # TODO: pretty printing
 class PQ:
@@ -14,10 +14,6 @@ class PQ:
         log.debug("with types: %s"%str([type(elem) for elem in val.args]))
         return np.prod([elem for elem in val.args
                         if type(elem) != u.dimensions.Dimension and not is_numeral_type(type(elem))])
-
-    @staticmethod
-    def get_from_array(lambd, arr):
-        return np.array([lambd(elem) for elem in arr])
 
     def __init__(self, val, dim=None, sigma=None, epsilon=None, symbol=None,
                  is_const=False):
