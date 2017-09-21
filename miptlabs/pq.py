@@ -62,6 +62,25 @@ class PQ:
         else:
             self.symbol = sp.symbols(symbol)
 
+    # TODO
+    # @property
+    # def sigma(self):
+    #     return self.val
+    #
+    # @sigma.setter
+    # def sigma(self, sigma):
+    #     self.__dict__['sigma'] = u.convert_to(sigma, self.dim)
+    #     self.__dict__['epsilon'] = u.convert_to(self.sigma/self.val, sp.numbers.Integer(1))
+    #
+    # @property
+    # def epsilon(self):
+    #     return self.epsilon
+    #
+    # @epsilon.setter
+    # def epsilon(self, epsilon):
+    #     self.__dict__['epsilon'] = u.convert_to(epsilon, sp.numbers.Integer(1))
+    #     self.__dict__['sigma'] = u.convert_to(self.val*self.epsilon, self.dim)
+
     def repr_as(self, dim):
         self.dim = dim
         self.val = u.convert_to(self.val, dim).n()
@@ -81,6 +100,7 @@ class PQ:
     def raw_print(self):
         print(self.val)
         print(self.sigma)
+        print(self.dim)
         print(self.epsilon)
 
     def __str__(self):
@@ -108,7 +128,7 @@ class PQ:
 
         # Если первые значащие цифры погрешности 1 или 2, оставляем 2 цифры, иначе 1
         msd = most_significant_digit(float_sigma)
-        num_sign_dig = None
+
         if float_sigma/10**(msd - 2) < 30:
             num_sign_dig = 2
         else:
@@ -164,7 +184,6 @@ class PQ:
             new_dim = self.dim/other.dim
         elif hasattr(other, 'args'):
             new_dim = self.dim/PQ.get_dim_from_args(other)
-            print('derived_dim', new_dim, other.args)
         else:
             new_dim = self.dim
 
