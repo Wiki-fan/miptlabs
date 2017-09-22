@@ -114,3 +114,28 @@ def OLS(grid, values):
     sigma_a = sigma_b*(np.mean(x**2) - np.mean(x)**2)
     errors = [sigma_b, sigma_a]
     return coefs, errors
+
+# def graphical_errors(grid, values):
+#     if type(grid[0]) is PQ:
+#         x, x_s = grid.val_float, grid.sigma_float
+#     else:
+#         x = grid
+#         x_s = 0
+#
+#     if type(values[0]) is PQ:
+#         y, y_s = values.val_float, values.sigma_float
+#     else:
+#         y = values
+#         y_s = 0
+#
+#     left = x[:len(x)/3]
+#     left_s = x_s[:len(x)/3]
+#
+#     right = x[len(x)*2/3:]
+#     right_s = x_s[len(x)*2/3:]
+#
+#     mid_x = x[len(x)/2]
+#     mid_y = y[len(x)/2]
+#
+#     cons = ({'type':'ineq', })
+#     f = lambda left, right: x

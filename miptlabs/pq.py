@@ -4,6 +4,7 @@ import numpy as np
 import logging as log
 from .arrays import *
 
+
 # TODO: pretty printing
 class PQ:
     eps = 10e-5
@@ -82,6 +83,10 @@ class PQ:
     #     self.__dict__['sigma'] = u.convert_to(self.val*self.epsilon, self.dim)
 
     def repr_as(self, dim):
+        """
+        Конвертитует себя в размерность dim.
+        :returns себя
+        """
         self.dim = dim
         self.val = u.convert_to(self.val, dim).n()
         self.sigma = u.convert_to(self.sigma, dim).n()
@@ -98,6 +103,7 @@ class PQ:
             float(u.convert_to(self.epsilon, 1)))
 
     def raw_print(self):
+        """Для дебага."""
         print(self.val)
         print(self.sigma)
         print(self.dim)
@@ -109,8 +115,12 @@ class PQ:
     def __repr__(self):
         return self.__str__()
 
-    # TODO
     def str_rounded_as(self, dim=None):
+        """
+        Правила округления в целом взяты из лабника.
+        Процентов печатаются всегда первые две значащие цифры (с правильным округлением).
+        :returns Строка, в которой величина записана в соответствии с правилами округления.
+        """
         if dim is None:
             dim = self.dim
 
@@ -121,13 +131,17 @@ class PQ:
         log.debug("%f %f %f"%(float_val, float_sigma, float_percents))
 
         def most_significant_digit(x):
-            return int(sp.floor(sp.log(sp.Abs(x), 20))) + 1
+            return int(sp.floor(sp.log(sp.Abs(x), 10))) + 1
 
         def get_significant_digits(x, n):
             return round(x, n - most_significant_digit(x) - 1)
 
+        def round_to_precision(val, prec):
+            return round(val/10**(prec))*10**(prec)
+
         # Если первые значащие цифры погрешности 1 или 2, оставляем 2 цифры, иначе 1
         msd = most_significant_digit(float_sigma)
+        msd_percents = most_significant_digit(float_percents)
 
         if float_sigma/10**(msd - 2) < 30:
             num_sign_dig = 2
@@ -135,17 +149,32 @@ class PQ:
             num_sign_dig = 1
         # print(msd)
         # print(num_sign_dig)
-        # msd_percents = most_significant_digit(float_epsilon) TODO: решить, что делать здесь
         # print(msd_percents)
-        return '%*.*f±%*.*f %s (%.2f%%)'%(
-            num_sign_dig if msd - num_sign_dig >= 0 else msd,
-            0 if msd - num_sign_dig >= 0 else num_sign_dig - msd,
-            round(float_val/10**(msd - num_sign_dig))*10**(msd - num_sign_dig),
-            num_sign_dig if msd - num_sign_dig >= 0 else msd,
-            0 if msd - num_sign_dig >= 0 else num_sign_dig - msd,
-            round(float_sigma/10**(msd - num_sign_dig))*10**(msd - num_sign_dig),
-            '' if dim == 1 else dim,
-            float_percents)
+        if msd > 3 or msd < -2:
+            return '(%*.*f±%*.*f)*10^%d %s (%*.*f%%)'%(
+                1,
+                num_sign_dig,
+                round(float_val/10**(msd - num_sign_dig))/10,
+                1,
+                num_sign_dig,
+                round(float_sigma/10**(msd - num_sign_dig))/10,
+                msd - num_sign_dig + 1,
+                '' if dim == 1 else dim,
+                max(msd_percents, 1),
+                2 - msd_percents,
+                round_to_precision(float_percents, msd_percents - 2))
+        else:
+            return '%*.*f±%*.*f %s (%*.*f%%)'%(
+                min(num_sign_dig, msd),
+                max(0, num_sign_dig - msd),
+                round_to_precision(float_val, msd - num_sign_dig),
+                num_sign_dig if msd - num_sign_dig >= 0 else msd,
+                max(0, num_sign_dig - msd),
+                round_to_precision(float_sigma, msd - num_sign_dig),
+                '' if dim == 1 else dim,
+                max(msd_percents, 1),
+                2 - msd_percents,
+                round_to_precision(float_percents, msd_percents - 2))
 
     def __add__(self, other):
         return eval(self.dim, lambda self, other: self + other, self, other)
