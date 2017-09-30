@@ -3,9 +3,11 @@ import sympy.physics.units as u
 import numpy as np
 import logging as log
 from .arrays import *
+from functools import total_ordering
 
 
 # TODO: pretty printing
+@total_ordering
 class PQ:
     eps = 10e-5
 
@@ -53,6 +55,8 @@ class PQ:
                 self.sigma = self.epsilon = 0
             else:
                 pass  # TODO:last digit
+
+        self.is_const = is_const
 
         if symbol is None:
             if not hasattr(PQ, 'symbol_counter'):
@@ -124,6 +128,10 @@ class PQ:
         if dim is None:
             dim = self.dim
 
+        if self.is_const == True:
+            float_val = float(u.convert_to(self.val, dim).n()/dim)
+            return '%f %s'%(float_val, '' if dim == 1 else dim)
+
         float_val = float(u.convert_to(self.val, dim).n()/dim)
         float_sigma = float(u.convert_to(self.sigma, dim).n()/dim)
         float_percents = float(u.convert_to(self.epsilon, sp.numbers.Integer(1)))*100
@@ -176,19 +184,28 @@ class PQ:
                 2 - msd_percents,
                 round_to_precision(float_percents, msd_percents - 2))
 
+    def __neg__(self):
+        return eval(self.dim, lambda self: -self, self)
+
     def __add__(self, other):
+        if issubclass(type(other), np.ndarray):
+            return other+self
         return eval(self.dim, lambda self, other: self + other, self, other)
 
     def __radd__(self, other):
         return eval(self.dim, lambda self, other: self + other, self, other)
 
     def __sub__(self, other):
+        if issubclass(type(other), np.ndarray):
+            return -other+self
         return eval(self.dim, lambda self, other: self - other, self, other)
 
     def __rsub__(self, other):
         return eval(self.dim, lambda self, other: self - other, self, other)
 
     def __mul__(self, other):
+        if issubclass(type(other), np.ndarray):
+            return other*self
         if type(other) is PQ:
             new_dim = self.dim*other.dim
         elif hasattr(other, 'args'):
@@ -209,6 +226,8 @@ class PQ:
         return eval(new_dim, lambda self, other: self*other, self, other)
 
     def __truediv__(self, other):
+        if issubclass(type(other), np.ndarray):
+            return 1/other*self
         if type(other) is PQ:
             new_dim = self.dim/other.dim
         elif hasattr(other, 'args'):
@@ -234,6 +253,25 @@ class PQ:
 
         return eval(self.dim**power, lambda self, other: self**power, self, power)
 
+    def __lt__(self, other):
+        if type(other) is not PQ:
+            raise("Can compare PQ only with PQ")
+        if self.dim != other.dim:
+            raise("Can compare PQ only of same dim")
+        if self.val < other.val:
+            return True
+        else:
+            return False
+
+    def __eq__(self, other):
+        if type(other) is not PQ:
+            raise("Can compare PQ only with PQ")
+        if self.dim != other.dim:
+            raise("Can compare PQ only of same dim")
+        if self.val == other.val:
+            return True
+        else:
+            return False
 
 def is_numeral_type(t):
     return t in {int, float, np.float64, sp} or issubclass(t, sp.numbers.Number)
@@ -252,13 +290,16 @@ def eval(dim, lambd, *args, symbol=None):
     args = list(args)
     log.debug('args: %s', args)
 
+    log.debug("Initial args types: %s"%str([type(arg) for arg in args]))
     for i in range(len(args)):
-        if type(args[i]) is not PQ:
+        if issubclass(type(args[i]), np.ndarray):
+            if type(args[i][0]) is not PQ:
+                args[i] = pqarray([PQ(val, is_const=True) for val in args[i]])
+        elif type(args[i]) is not PQ:
             args[i] = PQ(args[i], is_const=True)
     log.debug('args converted to PQ: %s', args)
 
-    partdiffs = [sp.diff(lambd(*[arg.symbol for arg in args]), x.symbol) for x
-                 in args]
+    partdiffs = [sp.diff(lambd(*[arg.symbol for arg in args]), x.symbol) for x in args]
     log.debug('partdiffs %s', partdiffs)
 
     values = {(arg.symbol, arg.val) for arg in args}
@@ -269,11 +310,14 @@ def eval(dim, lambd, *args, symbol=None):
     summands = [u.convert_to(s, dim**2) for s in summands]
     log.debug('summands %s', summands)
 
-    new_val = u.convert_to(lambd(*[arg.val for arg in args]), dim)
+    new_val = u.convert_to(lambd(*[arg.val for arg in args]), dim).n()
+
     log.debug('val %s', new_val)
 
-    new_sigma = u.convert_to(sp.sqrt(sum(summands)), dim)
+    new_sigma = u.convert_to(sp.sqrt(sum(summands)), dim).n()
     log.debug('sigma %s', new_sigma)
+
+    log.debug('dim %s', dim)
 
     return PQ(new_val, sigma=new_sigma, symbol=symbol, dim=dim)
 

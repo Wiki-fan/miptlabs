@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 from .pq import *
 from .arrays import *
+import pandas as pd
 
 def plt_pq(grid, values, label=None, color=None, ols=False, grid_x=None,
            grid_y=None, plot=plt.plot):
@@ -10,22 +11,22 @@ def plt_pq(grid, values, label=None, color=None, ols=False, grid_x=None,
     Можно добавлять подписи к осям и прочее.
     """
 
-    if type(grid[0]) is PQ:
-        x, x_s = grid.val_float, grid.sigma_float
-    else:
-        x = grid
-        x_s = 0
+    def get_arr_and_sigmas(values):
+        if type(values) is pd.Series:
+            values = pqarray(values)
+        if type(values[0]) is PQ:
+            return values.val_float, values.sigma_float, values
+        else:
+            return values, 0, values
 
-    if type(values[0]) is PQ:
-        y, y_s = values.val_float, values.sigma_float
-    else:
-        y = values
-        y_s = 0
+    x, x_s, grid = get_arr_and_sigmas(grid)
+    y, y_s, values = get_arr_and_sigmas(values)
 
     line = plot(x, y, color=color, label=label, zorder=2)
     plt.errorbar(x, y, xerr=x_s, yerr=y_s, color=line[0].get_color(), zorder=3)
     plt.scatter(x, y, color=line[0].get_color(), zorder=4, alpha=0.2)
 
+    fig = plt.gcf()
     ax = plt.axes()
     if grid_y is not None:
         try:
@@ -62,8 +63,8 @@ def plt_pq(grid, values, label=None, color=None, ols=False, grid_x=None,
         if minor != 0:
             xticks_minor = np.arange(plt.xlim()[0], plt.xlim()[1] + PQ.eps, minor)
             ax.set_xticks(xticks_minor, minor=True)
-    ax.grid(axis='both', color='black')
-    ax.grid(axis='both', which='minor', color='gray')
+    ax.grid(which='major', color='black', alpha=0.4)
+    ax.grid(which='minor', color='black', alpha=0.7)
 
     if label is not None:
         plt.legend()
