@@ -9,7 +9,7 @@ from functools import total_ordering
 # TODO: pretty printing
 @total_ordering
 class PQ:
-    eps = 10e-5
+    eps = 10e-10
 
     @staticmethod
     def get_dim_from_args(val):
@@ -253,6 +253,14 @@ class PQ:
 
         return eval(self.dim**power, lambda self, other: self**power, self, power)
 
+    def sqrt(self):
+        return self**(sp.numbers.Rational(1, 2))
+
+    def log(self):
+        # TODO
+        # return eval(sp.log(self.dim), lambda x: sp.log(x), self)
+        return PQ(sp.log(self.val), sigma=sp.log(self.sigma))
+
     def __lt__(self, other):
         if type(other) is not PQ:
             raise("Can compare PQ only with PQ")
@@ -272,6 +280,7 @@ class PQ:
             return True
         else:
             return False
+
 
 def is_numeral_type(t):
     return t in {int, float, np.float64, sp} or issubclass(t, sp.numbers.Number)
@@ -324,3 +333,13 @@ def eval(dim, lambd, *args, symbol=None):
 
 def celsium_to_kelvins(c):
     return (c + 273.15)*u.kelvins
+
+
+def get_mean(arr):
+    if type(arr) is list:
+        arr = pqarray(arr)
+    mean = np.mean(arr.val)
+    n = len(arr)
+    separate_error = (1/(n-1)*np.sum((arr.val-mean)**2))**sp.numbers.Rational(1,2)
+    mean_error = separate_error/np.sqrt(n)
+    return PQ(np.asscalar(mean), sigma=sp.sqrt(np.asscalar(mean_error)**2+arr[0].sigma**2))
