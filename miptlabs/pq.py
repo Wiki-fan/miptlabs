@@ -12,11 +12,20 @@ class PQ:
     eps = 10e-10
 
     @staticmethod
-    def get_dim_from_args(val):
-        log.debug("val.args in get_dim_from_args: %s"%str(val.args))
+    def __get_valid_args__(val):
+        log.debug("val.args in __get_valid_args__: %s"%str(val.args))
         log.debug("with types: %s"%str([type(elem) for elem in val.args]))
-        return np.prod([elem for elem in val.args
-                        if type(elem) != u.dimensions.Dimension and not is_numeral_type(type(elem))])
+        return [elem for elem in val.args if type(elem) != u.dimensions.Dimension]
+
+    @staticmethod
+    def get_dim_from_args(val):
+        return np.prod([elem for elem in PQ.__get_valid_args__(val)
+                        if not is_numeral_type(type(elem))])
+
+    @staticmethod
+    def get_val_from_args(val):
+        return np.prod([elem for elem in PQ.__get_valid_args__(val)
+                        if is_numeral_type(type(elem))])
 
     def __init__(self, val, dim=None, sigma=None, epsilon=None, symbol=None,
                  is_const=False):
@@ -96,15 +105,19 @@ class PQ:
         self.sigma = u.convert_to(self.sigma, dim).n()
         return self
 
+    @staticmethod
+    def get_float(val, dim):
+        return float(u.convert_to(val, dim).n()/dim)
+
     def str_as(self, dim=None):
         if dim is None:
             dim = self.dim
 
         return "%f±%f %s (%f)"%(
-            float(u.convert_to(self.val, dim).n()/dim),
-            float(u.convert_to(self.sigma, dim).n()/dim),
+            PQ.get_float(self.val, dim),
+            PQ.get_float(self.sigma, dim),
             dim,
-            float(u.convert_to(self.epsilon, 1)))
+            PQ.get_float(self.epsilon, 1))
 
     def raw_print(self):
         """Для дебага."""
@@ -129,12 +142,12 @@ class PQ:
             dim = self.dim
 
         if self.is_const == True:
-            float_val = float(u.convert_to(self.val, dim).n()/dim)
+            float_val = PQ.get_float(self.val, dim)
             return '%f %s'%(float_val, '' if dim == 1 else dim)
 
-        float_val = float(u.convert_to(self.val, dim).n()/dim)
-        float_sigma = float(u.convert_to(self.sigma, dim).n()/dim)
-        float_percents = float(u.convert_to(self.epsilon, sp.numbers.Integer(1)))*100
+        float_val = PQ.get_float(self.val, dim)
+        float_sigma = PQ.get_float(self.sigma, dim)
+        float_percents = PQ.get_float(self.epsilon, sp.numbers.Integer(1))*100
 
         log.debug("%f %f %f"%(float_val, float_sigma, float_percents))
 
@@ -257,15 +270,18 @@ class PQ:
         return self**(sp.numbers.Rational(1, 2))
 
     def log(self):
-        # TODO
-        # return eval(sp.log(self.dim), lambda x: sp.log(x), self)
-        return PQ(sp.log(self.val), sigma=sp.log(self.sigma))
+        # TODO: какой-то баг мешает конвертировать физические величины с логарифмами.
+        # Workaround: возвращать безразмерную
+        # return PQ(sp.log(PQ.get_val_from_args(self.val))*sp.log(PQ.get_dim_from_args(self.val)),
+        #           sigma=sp.log(PQ.get_val_from_args(self.sigma))*sp.log(PQ.get_dim_from_args(self.sigma)))
+        return PQ(sp.log(PQ.get_val_from_args(self.val)),
+                  sigma=PQ.get_val_from_args(self.sigma)/PQ.get_val_from_args(self.val))
 
     def __lt__(self, other):
         if type(other) is not PQ:
-            raise("Can compare PQ only with PQ")
+            raise Exception("Can compare PQ only with PQ")
         if self.dim != other.dim:
-            raise("Can compare PQ only of same dim")
+            raise Exception("Can compare PQ only of same dim")
         if self.val < other.val:
             return True
         else:
@@ -273,13 +289,19 @@ class PQ:
 
     def __eq__(self, other):
         if type(other) is not PQ:
-            raise("Can compare PQ only with PQ")
+            raise Exception("Can compare PQ only with PQ")
         if self.dim != other.dim:
-            raise("Can compare PQ only of same dim")
+            raise Exception("Can compare PQ only of same dim")
         if self.val == other.val:
             return True
         else:
             return False
+
+    def _print(self, expr=None):
+        return 'clprint'
+
+    def _latex(self, expr=None):
+        return 'cllatex' #'$'+self.__str__()+'$'#
 
 
 def is_numeral_type(t):

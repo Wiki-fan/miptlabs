@@ -91,7 +91,7 @@ def plot_OLS(grid, values, plot=plt.plot, label=None):
     x2 = np.max(x)
     y1 = ols_coefs[0]*x1 + ols_coefs[1]
     y2 = ols_coefs[0]*x2 + ols_coefs[1]
-    print([x1, x2], [y1, y2])
+
     plot([x1, x2], [y1, y2], color='black',
          linestyle='dashed', zorder=5,
          label='OLS for %s'%label)
