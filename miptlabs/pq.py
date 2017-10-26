@@ -95,6 +95,21 @@ class PQ:
     #     self.__dict__['epsilon'] = u.convert_to(epsilon, sp.numbers.Integer(1))
     #     self.__dict__['sigma'] = u.convert_to(self.val*self.epsilon, self.dim)
 
+    def set_sigma(self, sigma):
+        self.sigma = u.convert_to(sigma, self.dim)
+        self.epsilon = u.convert_to(self.sigma/self.val, sp.numbers.Integer(1))
+        return self
+
+    def set_epsilon(self, epsilon):
+        self.epsilon = u.convert_to(epsilon, sp.numbers.Integer(1))
+        self.sigma = u.convert_to(self.val*self.epsilon, self.dim)
+        return self
+
+    def add_sigma(self, other_sigma):
+        self.sigma = sp.sqrt(self.sigma**2+other_sigma**2)
+        self.epsilon = u.convert_to(self.sigma/self.val, sp.numbers.Integer(1))
+        return self
+
     def repr_as(self, dim):
         """
         Конвертитует себя в размерность dim.
@@ -133,6 +148,13 @@ class PQ:
         return self.__str__()
 
     def str_rounded_as(self, dim=None):
+        decomposition = self.str_rounded_as_decompose(dim)
+        if len(decomposition) == 5:
+            return '(%s±%s)*10^%s %s (%s%%)'%decomposition
+        else:
+            return '%s±%s %s (%s%%)'%decomposition
+
+    def str_rounded_as_decompose(self, dim=None):
         """
         Правила округления в целом взяты из лабника.
         Процентов печатаются всегда первые две значащие цифры (с правильным округлением).
@@ -172,30 +194,26 @@ class PQ:
         # print(num_sign_dig)
         # print(msd_percents)
         if msd > 3 or msd < -2:
-            return '(%*.*f±%*.*f)*10^%d %s (%*.*f%%)'%(
-                1,
-                num_sign_dig,
-                round(float_val/10**(msd - num_sign_dig))/10,
-                1,
-                num_sign_dig,
-                round(float_sigma/10**(msd - num_sign_dig))/10,
-                msd - num_sign_dig + 1,
-                '' if dim == 1 else dim,
-                max(msd_percents, 1),
-                2 - msd_percents,
-                round_to_precision(float_percents, msd_percents - 2))
+            return (
+                '%*.*f'%(1,num_sign_dig,round(float_val/10**(msd - num_sign_dig))/10),
+                '%*.*f'%(1,num_sign_dig,round(float_sigma/10**(msd - num_sign_dig))/10),
+                '%d'%(msd - num_sign_dig + 1),
+                '%s'%('' if dim == 1 else dim),
+                '%*.*f'%(max(msd_percents, 1),2 - msd_percents,round_to_precision(float_percents, msd_percents - 2))
+            )
         else:
-            return '%*.*f±%*.*f %s (%*.*f%%)'%(
-                min(num_sign_dig, msd),
+            return (
+                '%*.*f'%(min(num_sign_dig, msd),
                 max(0, num_sign_dig - msd),
-                round_to_precision(float_val, msd - num_sign_dig),
-                num_sign_dig if msd - num_sign_dig >= 0 else msd,
+                round_to_precision(float_val, msd - num_sign_dig)),
+                '%*.*f'%(num_sign_dig if msd - num_sign_dig >= 0 else msd,
                 max(0, num_sign_dig - msd),
-                round_to_precision(float_sigma, msd - num_sign_dig),
-                '' if dim == 1 else dim,
-                max(msd_percents, 1),
+                round_to_precision(float_sigma, msd - num_sign_dig)),
+                '%s'%('' if dim == 1 else dim),
+                '%*.*f'%(max(msd_percents, 1),
                 2 - msd_percents,
                 round_to_precision(float_percents, msd_percents - 2))
+            )
 
     def __neg__(self):
         return eval(self.dim, lambda self: -self, self)

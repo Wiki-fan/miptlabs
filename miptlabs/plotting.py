@@ -69,10 +69,10 @@ def plt_pq(grid, values, label=None, color=None, ols=False, grid_x=None,
     if label is not None:
         plt.legend()
 
-    if type(grid[0]) is PQ:
-        plt.xlabel(ax.get_xlabel() + str(grid[0].dim))
-    if type(values[0]) is PQ:
-        plt.ylabel(ax.get_ylabel() + str(values[0].dim))
+    # if type(grid[0]) is PQ:
+    #     plt.xlabel(ax.get_xlabel() + str(grid[0].dim))
+    # if type(values[0]) is PQ:
+    #     plt.ylabel(ax.get_ylabel() + str(values[0].dim))
 
     if ols == True:
         plot_OLS(grid, values, plot, label)
@@ -100,6 +100,8 @@ def OLS(grid, values):
     """
     :returns Коэффициенты и погрешности начиная с наивысшей степени.
     """
+    grid = pqarray(grid)
+    values = pqarray(values)
     if type(grid[0]) is PQ:
         x, x_s = grid.val_float, grid.sigma_float
     else:
