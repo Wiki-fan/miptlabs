@@ -106,7 +106,7 @@ class PQ:
         return self
 
     def add_sigma(self, other_sigma):
-        self.sigma = sp.sqrt(self.sigma**2+other_sigma**2)
+        self.sigma = sp.sqrt(self.sigma**2 + other_sigma**2)
         self.epsilon = u.convert_to(self.sigma/self.val, sp.numbers.Integer(1))
         return self
 
@@ -147,14 +147,31 @@ class PQ:
     def __repr__(self):
         return self.__str__()
 
-    def str_rounded_as(self, dim=None):
-        decomposition = self.str_rounded_as_decompose(dim)
+    def str_rounded_as(self, dim=None, params=None):
+        decomposition = self.str_rounded_as_decompose(dim, params=params)
         if len(decomposition) == 5:
             return '(%s±%s)*10^%s %s (%s%%)'%decomposition
         else:
             return '%s±%s %s (%s%%)'%decomposition
 
-    def str_rounded_as_decompose(self, dim=None):
+    @staticmethod
+    def __most_significant_digit(x):
+        return int(sp.floor(sp.log(sp.Abs(x), 10))) + 1
+
+    def get_print_params(self, dim=None):
+        if dim is None:
+            dim = self.dim
+        float_sigma = PQ.get_float(self.sigma, dim)
+
+        msd = self.__most_significant_digit(float_sigma)
+        if float_sigma/10**(msd - 2) < 30:
+            num_sign_dig = 2
+        else:
+            num_sign_dig = 1
+
+        return msd, num_sign_dig
+
+    def str_rounded_as_decompose(self, dim=None, params=None):
         """
         Правила округления в целом взяты из лабника.
         Процентов печатаются всегда первые две значащие цифры (с правильным округлением).
@@ -173,46 +190,43 @@ class PQ:
 
         log.debug("%f %f %f"%(float_val, float_sigma, float_percents))
 
-        def most_significant_digit(x):
-            return int(sp.floor(sp.log(sp.Abs(x), 10))) + 1
-
-        def get_significant_digits(x, n):
-            return round(x, n - most_significant_digit(x) - 1)
+        # def get_significant_digits(x, n):
+        #     return round(x, n - self.__most_significant_digit(x) - 1)
 
         def round_to_precision(val, prec):
             return round(val/10**(prec))*10**(prec)
 
-        # Если первые значащие цифры погрешности 1 или 2, оставляем 2 цифры, иначе 1
-        msd = most_significant_digit(float_sigma)
-        msd_percents = most_significant_digit(float_percents)
-
-        if float_sigma/10**(msd - 2) < 30:
-            num_sign_dig = 2
+        # Порядок первой значащей цифры
+        if params is None:
+            msd, num_sign_dig = self.get_print_params(dim=dim)
         else:
-            num_sign_dig = 1
-        # print(msd)
+            msd, num_sign_dig = params
+        msd_percents = self.__most_significant_digit(float_percents)
+
+        # print(type(msd))
         # print(num_sign_dig)
         # print(msd_percents)
+        # Если значащая цифра настолько мала или велика, что "некрасиво", пишем в экспоненциальном виде.
         if msd > 3 or msd < -2:
             return (
-                '%*.*f'%(1,num_sign_dig,round(float_val/10**(msd - num_sign_dig))/10),
-                '%*.*f'%(1,num_sign_dig,round(float_sigma/10**(msd - num_sign_dig))/10),
+                '%*.*f'%(1, num_sign_dig, round(float_val/10**(msd - num_sign_dig))/10),
+                '%*.*f'%(1, num_sign_dig, round(float_sigma/10**(msd - num_sign_dig))/10),
                 '%d'%(msd - num_sign_dig + 1),
                 '%s'%('' if dim == 1 else dim),
-                '%*.*f'%(max(msd_percents, 1),2 - msd_percents,round_to_precision(float_percents, msd_percents - 2))
+                '%*.*f'%(max(msd_percents, 1), 2 - msd_percents, round_to_precision(float_percents, msd_percents - 2))
             )
         else:
             return (
                 '%*.*f'%(min(num_sign_dig, msd),
-                max(0, num_sign_dig - msd),
-                round_to_precision(float_val, msd - num_sign_dig)),
+                         max(0, num_sign_dig - msd),
+                         round_to_precision(float_val, msd - num_sign_dig)),
                 '%*.*f'%(num_sign_dig if msd - num_sign_dig >= 0 else msd,
-                max(0, num_sign_dig - msd),
-                round_to_precision(float_sigma, msd - num_sign_dig)),
+                         max(0, num_sign_dig - msd),
+                         round_to_precision(float_sigma, msd - num_sign_dig)),
                 '%s'%('' if dim == 1 else dim),
                 '%*.*f'%(max(msd_percents, 1),
-                2 - msd_percents,
-                round_to_precision(float_percents, msd_percents - 2))
+                         2 - msd_percents,
+                         round_to_precision(float_percents, msd_percents - 2))
             )
 
     def __neg__(self):
@@ -220,7 +234,7 @@ class PQ:
 
     def __add__(self, other):
         if issubclass(type(other), np.ndarray):
-            return other+self
+            return other + self
         return eval(self.dim, lambda self, other: self + other, self, other)
 
     def __radd__(self, other):
@@ -228,7 +242,7 @@ class PQ:
 
     def __sub__(self, other):
         if issubclass(type(other), np.ndarray):
-            return -other+self
+            return -other + self
         return eval(self.dim, lambda self, other: self - other, self, other)
 
     def __rsub__(self, other):
@@ -319,7 +333,7 @@ class PQ:
         return 'clprint'
 
     def _latex(self, expr=None):
-        return 'cllatex' #'$'+self.__str__()+'$'#
+        return 'cllatex'  # '$'+self.__str__()+'$'#
 
 
 def is_numeral_type(t):
@@ -380,6 +394,6 @@ def get_mean(arr):
         arr = pqarray(arr)
     mean = np.mean(arr.val)
     n = len(arr)
-    separate_error = (1/(n-1)*np.sum((arr.val-mean)**2))**sp.numbers.Rational(1,2)
+    separate_error = (1/(n - 1)*np.sum((arr.val - mean)**2))**sp.numbers.Rational(1, 2)
     mean_error = separate_error/np.sqrt(n)
-    return PQ(np.asscalar(mean), sigma=sp.sqrt(np.asscalar(mean_error)**2+arr[0].sigma**2))
+    return PQ(np.asscalar(mean), sigma=sp.sqrt(np.asscalar(mean_error)**2 + arr[0].sigma**2))

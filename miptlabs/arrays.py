@@ -39,3 +39,13 @@ class pqarray(np.ndarray):
 
     def repr_as(self, dim):
         return pqarray([val.repr_as(dim) for val in self])
+
+    def common_print_params(self):
+        degrees = self.get_from_array(lambda elem: elem.get_print_params()[0],self)
+        sign_dig = self.get_from_array(lambda elem: elem.get_print_params()[1], self)
+        # print('degrees', degrees)
+        chosen_degree = int(np.min(degrees))
+        # print(type(int(chosen_degree)))
+        # print('num_sign_digs', sign_dig)
+        chosen_sign_dig = int(np.max(sign_dig))
+        return chosen_degree, chosen_sign_dig
