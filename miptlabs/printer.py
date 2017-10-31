@@ -47,7 +47,7 @@ def prepare_to_print(df):
 
 def write_latex(file, table_to_print):
     with open(file, 'w', encoding='utf-8') as f:
-        f.write(r"""\documentclass[russian,]{article}
+        f.write(r"""\documentclass[russian]{article}
 \usepackage{amsgen, amsmath, amstext, amsbsy, amsopn, amsfonts, amsthm, thmtools,  amssymb, amscd, mathtext, mathtools}
 \usepackage[T1, T2A]{fontenc}
 \usepackage[utf8]{inputenc}
