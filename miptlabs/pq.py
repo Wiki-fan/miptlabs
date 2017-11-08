@@ -306,8 +306,10 @@ class PQ:
         # Workaround: возвращать безразмерную
         # return PQ(sp.log(PQ.get_val_from_args(self.val))*sp.log(PQ.get_dim_from_args(self.val)),
         #           sigma=sp.log(PQ.get_val_from_args(self.sigma))*sp.log(PQ.get_dim_from_args(self.sigma)))
-        return PQ(sp.log(PQ.get_val_from_args(self.val)),
-                  sigma=PQ.get_val_from_args(self.sigma)/PQ.get_val_from_args(self.val))
+        #return PQ(sp.log(PQ.get_val_from_args(self.val)),
+        #         sigma=PQ.get_val_from_args(self.sigma)/PQ.get_val_from_args(self.val))
+        return PQ(sp.log(self.val),
+                 sigma=self.sigma/self.val)
 
     def __lt__(self, other):
         if type(other) is not PQ:
