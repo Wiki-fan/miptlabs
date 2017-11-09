@@ -117,6 +117,7 @@ def OLS(grid, values):
     sigma_b = 1/np.sqrt(len(y))*np.sqrt((np.mean(y**2) - np.mean(y)**2)/(np.mean(x**2) - np.mean(x)**2) - coefs[0]**2)
     sigma_a = sigma_b*(np.mean(x**2) - np.mean(x)**2)
     errors = [sigma_b, sigma_a]
+
     return coefs, errors
 
 # def graphical_errors(grid, values):

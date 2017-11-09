@@ -49,3 +49,7 @@ class pqarray(np.ndarray):
         # print('num_sign_digs', sign_dig)
         chosen_sign_dig = int(np.max(sign_dig))
         return chosen_degree, chosen_sign_dig
+
+
+def get_column(data, col, lambd):
+    return data[~data[col].isnull()].apply(lambd, axis=1)

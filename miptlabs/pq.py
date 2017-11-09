@@ -18,14 +18,20 @@ class PQ:
         return [elem for elem in val.args if type(elem) != u.dimensions.Dimension]
 
     @staticmethod
-    def get_dim_from_args(val):
-        return np.prod([elem for elem in PQ.__get_valid_args__(val)
-                        if not is_numeral_type(type(elem))])
+    def get_dim(val):
+        if not hasattr(val, 'args'):
+            return 1
+        else:
+            return np.prod([elem for elem in PQ.__get_valid_args__(val)
+                            if not is_numeral_type(type(elem))])
 
     @staticmethod
-    def get_val_from_args(val):
-        return np.prod([elem for elem in PQ.__get_valid_args__(val)
-                        if is_numeral_type(type(elem))])
+    def get_val(val):
+        if not hasattr(val, 'args'):
+            return 1
+        else:
+            return np.prod([elem for elem in PQ.__get_valid_args__(val)
+                            if is_numeral_type(type(elem))])
 
     def __init__(self, val, dim=None, sigma=None, epsilon=None, symbol=None,
                  is_const=False):
@@ -44,12 +50,16 @@ class PQ:
         if type(val) is PQ:
             raise Exception("Не пытайтесь передать PQ как val или sigma. Явно пропишите к нему .val")
 
+        self.dim = None
         if dim is not None:
             self.dim = dim
-        elif not hasattr(val, 'args'):
-            self.dim = 1
         else:
-            self.dim = PQ.get_dim_from_args(val)
+            if val != 0:
+                self.dim = get_dim(val)
+            elif sigma is not None:
+                self.dim = get_dim(sigma)
+            else:
+                raise Exception('Impossible to deduce dim (note: zero is dimensionless)')
 
         self.val = u.convert_to(val, self.dim)
 
@@ -122,7 +132,12 @@ class PQ:
 
     @staticmethod
     def get_float(val, dim):
-        return float(u.convert_to(val, dim).n()/dim)
+        if val == sp.zoo:
+            return np.nan
+        try:
+            return float(u.convert_to(val, dim).n()/dim)
+        except Exception:
+            print(val)
 
     def str_as(self, dim=None):
         if dim is None:
@@ -149,10 +164,13 @@ class PQ:
 
     def str_rounded_as(self, dim=None, params=None):
         decomposition = self.str_rounded_as_decompose(dim, params=params)
+
         if len(decomposition) == 5:
             return '(%s±%s)*10^%s %s (%s%%)'%decomposition
-        else:
+        elif len(decomposition) == 4:
             return '%s±%s %s (%s%%)'%decomposition
+        else:
+            return '%f %s'%decomposition
 
     @staticmethod
     def __most_significant_digit(x):
@@ -182,7 +200,7 @@ class PQ:
 
         if self.is_const == True:
             float_val = PQ.get_float(self.val, dim)
-            return '%f %s'%(float_val, '' if dim == 1 else dim)
+            return (float_val, '' if dim == 1 else dim)
 
         float_val = PQ.get_float(self.val, dim)
         float_sigma = PQ.get_float(self.sigma, dim)
@@ -201,7 +219,12 @@ class PQ:
             msd, num_sign_dig = self.get_print_params(dim=dim)
         else:
             msd, num_sign_dig = params
-        msd_percents = self.__most_significant_digit(float_percents)
+
+        if not np.isnan(float_percents):
+            msd_percents = self.__most_significant_digit(float_percents)
+            str_percents = '%*.*f'%(max(msd_percents, 1), 2 - msd_percents, round_to_precision(float_percents, msd_percents - 2))
+        else:
+            str_percents = 'NaN'
 
         # print(type(msd))
         # print(num_sign_dig)
@@ -213,7 +236,7 @@ class PQ:
                 '%*.*f'%(1, num_sign_dig, round(float_sigma/10**(msd - num_sign_dig))/10),
                 '%d'%(msd - num_sign_dig + 1),
                 '%s'%('' if dim == 1 else dim),
-                '%*.*f'%(max(msd_percents, 1), 2 - msd_percents, round_to_precision(float_percents, msd_percents - 2))
+                str_percents
             )
         else:
             return (
@@ -224,9 +247,7 @@ class PQ:
                          max(0, num_sign_dig - msd),
                          round_to_precision(float_sigma, msd - num_sign_dig)),
                 '%s'%('' if dim == 1 else dim),
-                '%*.*f'%(max(msd_percents, 1),
-                         2 - msd_percents,
-                         round_to_precision(float_percents, msd_percents - 2))
+                str_percents
             )
 
     def __neg__(self):
@@ -254,7 +275,7 @@ class PQ:
         if type(other) is PQ:
             new_dim = self.dim*other.dim
         elif hasattr(other, 'args'):
-            new_dim = self.dim*PQ.get_dim_from_args(other)
+            new_dim = self.dim*PQ.get_dim(other)
         else:
             new_dim = self.dim
 
@@ -264,7 +285,7 @@ class PQ:
         if type(other) is PQ:
             new_dim = self.dim*other.dim
         elif hasattr(other, 'args'):
-            new_dim = self.dim*PQ.get_dim_from_args(other)
+            new_dim = self.dim*PQ.get_dim(other)
         else:
             new_dim = self.dim
 
@@ -276,7 +297,7 @@ class PQ:
         if type(other) is PQ:
             new_dim = self.dim/other.dim
         elif hasattr(other, 'args'):
-            new_dim = self.dim/PQ.get_dim_from_args(other)
+            new_dim = self.dim/PQ.get_dim(other)
         else:
             new_dim = self.dim
 
@@ -286,7 +307,7 @@ class PQ:
         if type(other) is PQ:
             new_dim = self.dim/other.dim
         elif hasattr(other, 'args'):
-            new_dim = PQ.get_dim_from_args(other)/self.dim
+            new_dim = PQ.get_dim(other)/self.dim
         else:
             new_dim = 1/self.dim
 
@@ -306,10 +327,8 @@ class PQ:
         # Workaround: возвращать безразмерную
         # return PQ(sp.log(PQ.get_val_from_args(self.val))*sp.log(PQ.get_dim_from_args(self.val)),
         #           sigma=sp.log(PQ.get_val_from_args(self.sigma))*sp.log(PQ.get_dim_from_args(self.sigma)))
-        #return PQ(sp.log(PQ.get_val_from_args(self.val)),
-        #         sigma=PQ.get_val_from_args(self.sigma)/PQ.get_val_from_args(self.val))
-        return PQ(sp.log(self.val),
-                 sigma=self.sigma/self.val)
+        return PQ(sp.log(PQ.get_val(self.val)),
+                  sigma=PQ.get_val(self.sigma)/PQ.get_val(self.val))
 
     def __lt__(self, other):
         if type(other) is not PQ:
