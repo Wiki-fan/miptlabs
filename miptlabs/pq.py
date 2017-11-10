@@ -1,6 +1,7 @@
 import sympy as sp
 import sympy.physics.units as u
 import numpy as np
+import pandas as pd
 import logging as log
 from .arrays import *
 from functools import total_ordering
@@ -19,16 +20,16 @@ class PQ:
 
     @staticmethod
     def get_dim(val):
-        if not hasattr(val, 'args'):
+        if not hasattr(val, 'args') or is_numeral_type(type(val)):
             return 1
         else:
             return np.prod([elem for elem in PQ.__get_valid_args__(val)
                             if not is_numeral_type(type(elem))])
 
     @staticmethod
-    def get_val(val):
-        if not hasattr(val, 'args'):
-            return 1
+    def get_value(val):
+        if not hasattr(val, 'args') or is_numeral_type(type(val)):
+            return val
         else:
             return np.prod([elem for elem in PQ.__get_valid_args__(val)
                             if is_numeral_type(type(elem))])
@@ -47,7 +48,7 @@ class PQ:
             Иначе же за погрешность надо брать последнюю цифру (не реализовано).
         """
 
-        if type(val) is PQ:
+        if isinstance(val, PQ):
             raise Exception("Не пытайтесь передать PQ как val или sigma. Явно пропишите к нему .val")
 
         self.dim = None
@@ -55,9 +56,9 @@ class PQ:
             self.dim = dim
         else:
             if val != 0:
-                self.dim = get_dim(val)
+                self.dim = PQ.get_dim(val)
             elif sigma is not None:
-                self.dim = get_dim(sigma)
+                self.dim = PQ.get_dim(sigma)
             else:
                 raise Exception('Impossible to deduce dim (note: zero is dimensionless)')
 
@@ -134,10 +135,10 @@ class PQ:
     def get_float(val, dim):
         if val == sp.zoo:
             return np.nan
-        try:
-            return float(u.convert_to(val, dim).n()/dim)
-        except Exception:
-            print(val)
+
+        #return float(u.convert_to(val, dim).n()/dim)
+        return float(PQ.get_value(val))
+
 
     def str_as(self, dim=None):
         if dim is None:
@@ -327,8 +328,8 @@ class PQ:
         # Workaround: возвращать безразмерную
         # return PQ(sp.log(PQ.get_val_from_args(self.val))*sp.log(PQ.get_dim_from_args(self.val)),
         #           sigma=sp.log(PQ.get_val_from_args(self.sigma))*sp.log(PQ.get_dim_from_args(self.sigma)))
-        return PQ(sp.log(PQ.get_val(self.val)),
-                  sigma=PQ.get_val(self.sigma)/PQ.get_val(self.val))
+        return PQ(sp.log(PQ.get_value(self.val)),
+                  sigma=PQ.get_value(self.sigma)/PQ.get_value(self.val))
 
     def __lt__(self, other):
         if type(other) is not PQ:
@@ -411,7 +412,7 @@ def celsium_to_kelvins(c):
 
 
 def get_mean(arr):
-    if type(arr) is list:
+    if type(arr) is list or type(arr) is pd.Series:
         arr = pqarray(arr)
     mean = np.mean(arr.val)
     n = len(arr)
