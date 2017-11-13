@@ -255,8 +255,9 @@ class PQ:
         return eval(self.dim, lambda self: -self, self)
 
     def __add__(self, other):
-        if issubclass(type(other), np.ndarray):
-            return other + self
+        # TODO: везде проверять на pd.Series
+        if issubclass(type(other), np.ndarray) or issubclass(type(other), pd.Series):
+            return pqarray(other) + self
         return eval(self.dim, lambda self, other: self + other, self, other)
 
     def __radd__(self, other):
@@ -359,7 +360,7 @@ class PQ:
 
 
 def is_numeral_type(t):
-    return t in {int, float, np.float64, sp} or issubclass(t, sp.numbers.Number)
+    return t in {int, float, np.float64, np.int64, sp} or issubclass(t, sp.numbers.Number)
 
 
 # TODO: Узнавать, какая величина давала наибольший вклад в погрешность.

@@ -28,14 +28,18 @@ def prepare_to_print(df):
     for column in df.columns:
         col = pqarray(df[column].dropna().values)
 
-        if col[0].is_const == True:
+        if is_numeral_type(type(col[0])):
+            res_arr = np.array([np.array([x]) for x in col])
+        elif col[0].is_const == True:
             res_arr = np.array([np.array(x.str_rounded_as_decompose()) for x in col])
         else:
             params = col.common_print_params()
             res_arr = np.array([np.array(x.str_rounded_as_decompose(params=params)) for x in col])
-        # print(res_arr)
+        #print(res_arr)
 
-        if len(res_arr[0]) == 4:
+        if len(res_arr[0]) == 1:
+            df2['\\thead{$%s$}'%column] = pd.Series(res_arr[:, 0])
+        elif len(res_arr[0]) == 4:
             # df[column].apply(lambda x: )
             df2['\\thead{$%s$, \\\\ %s}'%(column, res_arr[0][2])] = pd.Series(res_arr[:, 0])
             # pd.Series(pqarray(df[column].dropna().values).val_float)
@@ -51,9 +55,11 @@ def prepare_to_print(df):
     return df2
 
 
-def write_latex(file, table_to_print):
+def write_latex(file, tables_to_print, horizontal=False):
+    if type(tables_to_print) is not list:
+        tables_to_print = [tables_to_print]
     with open(file, 'w', encoding='utf-8') as f:
-        f.write(r"""\documentclass[russian]{article}
+        HEADER = r"""\documentclass[russian]{article}
 \usepackage{amsgen, amsmath, amstext, amsbsy, amsopn, amsfonts, amsthm, thmtools,  amssymb, amscd, mathtext, mathtools}
 \usepackage[T1, T2A]{fontenc}
 \usepackage[utf8]{inputenc}
@@ -64,8 +70,11 @@ def write_latex(file, table_to_print):
 \usepackage[a4paper,left=10mm,right=10mm,top=10mm,bottom=10mm]{geometry}
 \setlength{\tabcolsep}{.16667em}
 \begin{document}
-\begin{landscape}""")
-        n = len(table_to_print.columns)
-        f.write(table_to_print.to_latex(encoding='utf-8', escape=False, na_rep='', )
-                .replace('%', '\%').replace('l'*(n + 1), '|' + 'l|'*(n + 1)))
-        f.write(r"""\end{landscape}\end{document}""")
+%s"""%(r'\begin{landscape}' if horizontal else '')
+        f.write(HEADER)
+        for table_to_print in tables_to_print:
+            n = len(table_to_print.columns)
+            f.write(table_to_print.to_latex(encoding='utf-8', escape=False, na_rep='', )
+                    .replace('%', '\%').replace('l'*(n + 1), '|' + 'l|'*(n + 1)))
+        FOOTER = r"""%s\end{document}"""%(r'\end{landscape}' if horizontal else '')
+        f.write(FOOTER)

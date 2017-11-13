@@ -22,8 +22,9 @@ def plt_pq(grid, values, label=None, color=None, ols=False, grid_x=None,
     x, x_s, grid = get_arr_and_sigmas(grid)
     y, y_s, values = get_arr_and_sigmas(values)
 
-    line = plot(x, y, color=color, label=label, zorder=2)
-    plt.errorbar(x, y, xerr=x_s, yerr=y_s, color=line[0].get_color(), zorder=3)
+    # Почему у plot alpha не работает?
+    line = plot(x, y, alpha=0.1, color=color, label=label, zorder=2)
+    plt.errorbar(x, y, xerr=x_s, yerr=y_s, color=line[0].get_color(), zorder=3, alpha=1)
     plt.scatter(x, y, color=line[0].get_color(), zorder=4, alpha=0.2)
 
     fig = plt.gcf()
