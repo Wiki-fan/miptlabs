@@ -264,12 +264,12 @@ class PQ:
         return eval(self.dim, lambda self, other: self + other, self, other)
 
     def __sub__(self, other):
-        if issubclass(type(other), np.ndarray):
+        if issubclass(type(other), np.ndarray) or issubclass(type(other), pd.Series):
             return -other + self
         return eval(self.dim, lambda self, other: self - other, self, other)
 
     def __rsub__(self, other):
-        return eval(self.dim, lambda self, other: self - other, self, other)
+        return -self+other
 
     def __mul__(self, other):
         if issubclass(type(other), np.ndarray):

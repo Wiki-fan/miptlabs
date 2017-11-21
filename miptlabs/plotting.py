@@ -3,6 +3,15 @@ from .pq import *
 from .arrays import *
 import pandas as pd
 
+
+def _get_arr_and_sigmas(values):
+    if type(values) is pd.Series:
+        values = pqarray(values)
+    if type(values[0]) is PQ:
+        return values.val_float, values.sigma_float, values
+    else:
+        return values, 0, values
+
 def plt_pq(grid, values, label=None, color=None, ols=False, grid_x=None,
            grid_y=None, plot=plt.plot):
     """
@@ -11,16 +20,8 @@ def plt_pq(grid, values, label=None, color=None, ols=False, grid_x=None,
     Можно добавлять подписи к осям и прочее.
     """
 
-    def get_arr_and_sigmas(values):
-        if type(values) is pd.Series:
-            values = pqarray(values)
-        if type(values[0]) is PQ:
-            return values.val_float, values.sigma_float, values
-        else:
-            return values, 0, values
-
-    x, x_s, grid = get_arr_and_sigmas(grid)
-    y, y_s, values = get_arr_and_sigmas(values)
+    x, x_s, grid = _get_arr_and_sigmas(grid)
+    y, y_s, values = _get_arr_and_sigmas(values)
 
     # Почему у plot alpha не работает?
     line = plot(x, y, alpha=0.1, color=color, label=label, zorder=2)
@@ -80,7 +81,7 @@ def plt_pq(grid, values, label=None, color=None, ols=False, grid_x=None,
 
 
 def plot_OLS(grid, values, plot=plt.plot, label=None):
-    """Построить график прямой, приближающей точки по НМК, на текущей figure.
+    """Построить график прямой, приближающей точки по МНК, на текущей figure.
     :returns (ols_coefs, ols_errors)"""
     ols_coefs, ols_errors = OLS(grid, values)
     if type(grid[0]) is PQ:

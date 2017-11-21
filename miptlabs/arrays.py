@@ -1,6 +1,5 @@
 from .pq import *
 
-
 class pqarray(np.ndarray):
     def __new__(cls, input_array):
         obj = np.asarray(input_array).view(cls)
@@ -31,10 +30,12 @@ class pqarray(np.ndarray):
 
     @property
     def val_float(self):
+        #return self.get_from_array(lambda elem: PQ.get_value(elem.val), self)
         return (self.val/self[0].dim).astype(float)
 
     @property
     def sigma_float(self):
+        #return self.get_from_array(lambda elem: PQ.get_value(elem.sigma), self)
         return (self.sigma/self[0].dim).astype(float)
 
     def repr_as(self, dim):
