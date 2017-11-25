@@ -3,10 +3,8 @@ from .pq import *
 from .arrays import *
 import pandas as pd
 
-
+@convert_args
 def _get_arr_and_sigmas(values):
-    if type(values) is pd.Series:
-        values = pqarray(values)
     if type(values[0]) is PQ:
         return values.val_float, values.sigma_float, values
     else:

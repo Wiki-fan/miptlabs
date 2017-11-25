@@ -5,7 +5,23 @@ import pandas as pd
 import logging as log
 from .arrays import *
 from functools import total_ordering
+import functools
 
+
+def convert_args(func):
+    @functools.wraps(func)
+    def decorated(*args, **kwargs):
+        #print('decorating')
+        args = list(args)
+        for i in range(len(args)):
+            if issubclass(type(args[i]), np.ndarray) or issubclass(type(args[i]), pd.Series) \
+                    or issubclass(type(args[i]), list):
+                #print('converting ', type(args[i]))
+                args[i] = pqarray(args[i])
+
+        return func(*args, **kwargs)
+
+    return decorated
 
 # TODO: pretty printing
 @total_ordering
@@ -34,6 +50,7 @@ class PQ:
             return np.prod([elem for elem in PQ.__get_valid_args__(val)
                             if is_numeral_type(type(elem))])
 
+    # TODO: конвертить множители в np.float64
     def __init__(self, val, dim=None, sigma=None, epsilon=None, symbol=None,
                  is_const=False):
         """
@@ -67,8 +84,14 @@ class PQ:
         if sigma is not None:
             self.sigma = u.convert_to(sigma, self.dim)
             self.epsilon = u.convert_to(self.sigma/self.val, sp.numbers.Integer(1))
+            if self.epsilon == sp.zoo or self.epsilon == sp.oo or self.epsilon == sp.nan:
+                self.epsilon = np.nan
+            elif self.epsilon < 0:
+                self.epsilon = sp.Abs(self.epsilon)
         elif epsilon is not None:
-            self.epsilon = u.convert_to(epsilon, sp.numbers.Integer(1))
+            self.epsilon = np.float64(u.convert_to(epsilon, sp.numbers.Integer(1)))
+            if not np.isnan(self.epsilon) and self.epsilon < 0:
+                self.epsilon = np.abs(self.epsilon)
             self.sigma = u.convert_to(self.val*self.epsilon, self.dim)
         else:
             if is_const:
@@ -175,6 +198,8 @@ class PQ:
 
     @staticmethod
     def __most_significant_digit(x):
+        if x == 0:
+            return 0
         return int(sp.floor(sp.log(sp.Abs(x), 10))) + 1
 
     def get_print_params(self, dim=None):
@@ -251,29 +276,38 @@ class PQ:
                 str_percents
             )
 
+    # @convert_args не нужно, ибо это вызывается только от self
     def __neg__(self):
         return eval(self.dim, lambda self: -self, self)
 
+    @convert_args
     def __add__(self, other):
         # TODO: везде проверять на pd.Series
-        if issubclass(type(other), np.ndarray) or issubclass(type(other), pd.Series):
-            return pqarray(other) + self
-        return eval(self.dim, lambda self, other: self + other, self, other)
+        if isinstance(other, pqarray):
+            return  pqarray(other)+self
+        return eval(self.dim, lambda self, other: other + self, self, other)
 
+    @convert_args
     def __radd__(self, other):
         return eval(self.dim, lambda self, other: self + other, self, other)
 
+    @convert_args
     def __sub__(self, other):
-        if issubclass(type(other), np.ndarray) or issubclass(type(other), pd.Series):
+        if isinstance(other, pqarray):
             return -other + self
-        return eval(self.dim, lambda self, other: self - other, self, other)
+        # workaround вместо self - other
+        return eval(self.dim, lambda self, other: -other + self, self, other)
 
+    @convert_args
     def __rsub__(self, other):
+        print('in rsub')
         return -self+other
 
+    @convert_args
     def __mul__(self, other):
-        if issubclass(type(other), np.ndarray):
+        if isinstance(other, pqarray):
             return other*self
+
         if type(other) is PQ:
             new_dim = self.dim*other.dim
         elif hasattr(other, 'args'):
@@ -283,16 +317,11 @@ class PQ:
 
         return eval(new_dim, lambda self, other: self*other, self, other)
 
+    @convert_args
     def __rmul__(self, other):
-        if type(other) is PQ:
-            new_dim = self.dim*other.dim
-        elif hasattr(other, 'args'):
-            new_dim = self.dim*PQ.get_dim(other)
-        else:
-            new_dim = self.dim
+        return self*other
 
-        return eval(new_dim, lambda self, other: self*other, self, other)
-
+    @convert_args
     def __truediv__(self, other):
         if issubclass(type(other), np.ndarray):
             return 1/other*self
@@ -305,6 +334,7 @@ class PQ:
 
         return eval(new_dim, lambda self, other: self/other, self, other)
 
+    @convert_args
     def __rtruediv__(self, other):
         if type(other) is PQ:
             new_dim = self.dim/other.dim
@@ -315,12 +345,18 @@ class PQ:
 
         return eval(new_dim, lambda self, other: other/self, self, other)
 
+    @convert_args
     def __pow__(self, power, modulo=None):
-        if not is_numeral_type(type(power)):
-            raise Exception('Тип степени %s. Возводить в степень, которая не число, нельзя.'%type(power))
+        if isinstance(power, pqarray):
+            if not is_numeral_type(type(power[0])):
+                raise Exception('Тип степени %s. Возводить в степень, которая не число, нельзя.'%type(power))
+            return pqarray([self**pow for pow in power])
+        else:
+            if not is_numeral_type(type(power)):
+                raise Exception('Тип степени %s. Возводить в степень, которая не число, нельзя.'%type(power))
+            return eval(self.dim**power, lambda self, other: self**power, self, power)
 
-        return eval(self.dim**power, lambda self, other: self**power, self, power)
-
+    #@convert_args не нужно, ибо это вызывается только от self
     def sqrt(self):
         return self**(sp.numbers.Rational(1, 2))
 
