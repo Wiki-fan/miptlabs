@@ -8,6 +8,7 @@ from functools import total_ordering
 import functools
 
 
+# Конвертирует всякие np.ndarray и pd.Series в  ml.pqarray, чтобы были всякие дополнительные функции
 def convert_args(func):
     @functools.wraps(func)
     def decorated(*args, **kwargs):
@@ -19,7 +20,10 @@ def convert_args(func):
                 #print('converting ', type(args[i]))
                 args[i] = pqarray(args[i])
 
-        return func(*args, **kwargs)
+        ans = func(*args, **kwargs)
+        #print(ans.dim, PQ.get_dim(ans.val))
+        #assert(ans.dim == PQ.get_dim(ans.val))
+        return ans
 
     return decorated
 
@@ -324,7 +328,7 @@ class PQ:
     @convert_args
     def __truediv__(self, other):
         if issubclass(type(other), np.ndarray):
-            return 1/other*self
+            return (1/other)*self
         if type(other) is PQ:
             new_dim = self.dim/other.dim
         elif hasattr(other, 'args'):
