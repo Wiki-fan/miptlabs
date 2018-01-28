@@ -31,6 +31,16 @@ sp.Basic.__str__=lambda expr, **settings:ml.PQStrPrinter(settings).doprint(expr)
 
 class TestStringMethods(unittest.TestCase):
 
+    def test_dimension_of_symbols(self):
+        t1 = ml.PQ(1.0*u.s, is_const=True)
+        self.assertEquals(t1.dim, u.s)
+        t2 = ml.PQ(1*u.s, is_const=True)
+        self.assertEquals(t2.dim, u.s)
+        # possible workaround: use floats everywhere!
+
+    def test_decimal_multipliers(self):
+        x = ml.PQ(2.0*u.milli*u.m, sigma=0.1*u.milli*u.m)
+
     def test_format(self):
         a = ml.PQ(12345.6*u.m, sigma=3*u.m, dim=u.m)
         self.assertEqual(str(a), '12346±3 m (0.024%)')
@@ -84,15 +94,16 @@ class TestStringMethods(unittest.TestCase):
 
         arr = ml.pqarray([a, b, c])
 
-        self.assertEqual(str(arr), '[1.0000±0.0010 m (0.10%) 2.0000±0.0010 m (0.050%) 2.0000±0.0010 m (0.050%)]')
-        # print((arr - a)[0].dim) # m
+        self.assertEqual(str(arr),
+                         '[1.0000±0.0010 m (0.10%) 2.0000±0.0010 m (0.050%) 2.0000±0.0010 m (0.050%)]')
+        # Проверка, что там с размерностью у нуля
+        self.assertEqual(str((arr - a)[0].dim), 'm')
         self.assertEqual(str(-arr).replace('\n', ''),
                          '[-1.0000±0.0010 m (0.10%) -2.0000±0.0010 m (0.050%) -2.0000±0.0010 m (0.050%)]')
         self.assertEqual(str(a + arr), '[2.0000±0.0028 m (0.14%) 3.0000±0.0014 m (0.047%) 3.0000±0.0014 m (0.047%)]')
         self.assertEqual(str(arr + a), '[2.0000±0.0028 m (0.14%) 3.0000±0.0014 m (0.047%) 3.0000±0.0014 m (0.047%)]')
         self.assertEqual(str(a - arr), '[0.0000±0.0014 m (NaN%) -1.0000±0.0014 m (0.14%) -1.0000±0.0014 m (0.14%)]')
-        # Ошибка в погрешности первого значения
-        self.assertEqual(str(arr - a), '[0.00±0.00 m (NaN%) 1.0000±0.0014 m (0.14%) 1.0000±0.0014 m (0.14%)]')
+        self.assertEqual(str(arr - a), '[0.0000±0.0014 m (NaN%) 1.0000±0.0014 m (0.14%) 1.0000±0.0014 m (0.14%)]')
         self.assertEqual(str(b*arr).replace('\n', ''),
                          '[2.0000±0.0022 m**2 (0.11%) 4.000±0.006 m**2 (0.14%) 4.0000±0.0028 m**2 (0.071%)]')
         self.assertEqual(str(arr*b).replace('\n', ''),
@@ -106,6 +117,14 @@ class TestStringMethods(unittest.TestCase):
                          '[1.0000±0.0028 m**2 (0.28%) 4.000±0.006 m**2 (0.14%) 4.000±0.006 m**2 (0.14%)]')
         self.assertEqual(str(np.sqrt(arr)).replace('\n', ''),
                          '[(1000.0±0.5)*10^-3 sqrt(m) (0.050%) (1414.2±0.4)*10^-3 sqrt(m) (0.025%) (1414.2±0.4)*10^-3 sqrt(m) (0.025%)]')
+
+    def test_types(self):
+        with self.assertRaises(Exception) as e:
+            a = ml.PQ(1.0*u.m, sigma=1.0*u.mm)
+            test = ml.PQ(a, sigma=2*u.m)
+
+        #self.assertEqual(e.exception.msg,
+        #                 'Не пытайтесь передать PQ как val или sigma. Явно пропишите к нему .val')
 
 if __name__ == '__main__':
     unittest.main()

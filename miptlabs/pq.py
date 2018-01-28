@@ -297,14 +297,13 @@ class PQ:
 
     @convert_args
     def __sub__(self, other):
-        if isinstance(other, pqarray):
-            return -other + self
-        # workaround вместо self - other
-        return eval(self.dim, lambda self, other: -other + self, self, other)
+        #if isinstance(other, pqarray):
+        #    return -other + self
+        return -other + self
+        #return eval(self.dim, lambda self, other: -other + self, self, other)
 
     @convert_args
     def __rsub__(self, other):
-        print('in rsub')
         return -self+other
 
     @convert_args
