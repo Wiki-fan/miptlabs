@@ -74,18 +74,19 @@ class TestStringMethods(unittest.TestCase):
         self.assertEqual(str((u.s/b).val), '0.5*s/m')
         self.assertEqual(str(1/b), '(5000.00±2.50)*10^-4 1/m (0.050%)')
 
-        self.assertEqual(str(-a).replace('\n', ''),
-                         '-1.0000±0.0010 m (0.10%)')
+        self.assertEqual(str(-a), '-1.0000±0.0010 m (0.10%)')
         self.assertEqual(str(b + c), '5.0000±0.0014 m (0.028%)')
         self.assertEqual(str(c + b), '5.0000±0.0014 m (0.028%)')
         self.assertEqual(str(c - b), '1.0000±0.0014 m (0.14%)')
         self.assertEqual(str(b - c), '-1.0000±0.0014 m (0.14%)')
-        self.assertEqual(str(c*b).replace('\n', ''), '6.000±0.004 m**2 (0.060%)')
-        self.assertEqual(str(b*c).replace('\n', ''), '6.000±0.004 m**2 (0.060%)')
-        self.assertEqual(str(b/c).replace('\n', ''), '(666.7±0.4)*10^-3  (0.060%)')
+        self.assertEqual(str(c*b), '6.000±0.004 m**2 (0.060%)')
+        self.assertEqual(str(b*c), '6.000±0.004 m**2 (0.060%)')
+        self.assertEqual(str(b/c), '(666.7±0.4)*10^-3  (0.060%)')
         self.assertEqual(str(c/b), '(1500.0±0.9)*10^-3  (0.060%)')
         self.assertEqual(str(b**2), '4.000±0.004 m**2 (0.10%)')
-        self.assertEqual(str(np.sqrt(b)).replace('\n', ''), '(1414.2±0.4)*10^-3 sqrt(m) (0.025%)')
+        self.assertEqual(str(np.sqrt(b)), '(1414.2±0.4)*10^-3 sqrt(m) (0.025%)')
+
+        self.assertEqual(str(b**2/c), '1.3333±0.0014 m (0.11%)')
 
     def test_array(self):
         a = ml.PQ(1.0*u.m, sigma=1.0*u.mm)
