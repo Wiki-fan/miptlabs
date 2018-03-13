@@ -11,7 +11,7 @@ def _get_arr_and_sigmas(values):
         return values, 0, values
 
 def plt_pq(grid, values, label=None, color=None, ols=False, grid_x=None,
-           grid_y=None, plot=plt.plot):
+           grid_y=None, plot=plt.plot, **kwargs):
     """
     Строит графики. С крестами погрешностей. ols=True рисует ещё и прямую, приближающую значения по МНК.
     Вызовы plt.figure и plt.show должны быть снаружи.
@@ -22,9 +22,9 @@ def plt_pq(grid, values, label=None, color=None, ols=False, grid_x=None,
     y, y_s, values = _get_arr_and_sigmas(values)
 
     # Почему у plot alpha не работает?
-    line = plot(x, y, alpha=0.1, color=color, label=label, zorder=2)
+    line = plot(x, y, alpha=0.1, color=color, label=label, zorder=2, **kwargs)
     plt.errorbar(x, y, xerr=x_s, yerr=y_s, color=line[0].get_color(), zorder=3, alpha=1)
-    plt.scatter(x, y, color=line[0].get_color(), zorder=4, alpha=0.2)
+    plt.scatter(x, y, color=line[0].get_color(), zorder=4, alpha=0.2, **kwargs)
 
     fig = plt.gcf()
     ax = plt.axes()
