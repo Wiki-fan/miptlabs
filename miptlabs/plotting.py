@@ -3,12 +3,14 @@ from .pq import *
 from .arrays import *
 import pandas as pd
 
+
 @convert_args
 def _get_arr_and_sigmas(values):
     if type(values[0]) is PQ:
         return values.val_float, values.sigma_float, values
     else:
         return values, 0, values
+
 
 def plt_pq(grid, values, label=None, color=None, ols=False, grid_x=None,
            grid_y=None, plot=plt.plot, **kwargs):
@@ -78,14 +80,16 @@ def plt_pq(grid, values, label=None, color=None, ols=False, grid_x=None,
         plot_OLS(grid, values, plot, label)
 
 
-def plot_OLS(grid, values, plot=plt.plot, label=None):
+def plot_OLS(x_, y_, plot=plt.plot, label=None):
     """Построить график прямой, приближающей точки по МНК, на текущей figure.
     :returns (ols_coefs, ols_errors)"""
-    ols_coefs, ols_errors = OLS(grid, values)
-    if type(grid[0]) is PQ:
-        x, x_s = grid.val_float, grid.sigma_float
+    x = pqarray(x_)
+    y = pqarray(y_)
+    ols_coefs, ols_errors = OLS(x, y)
+    if type(x[0]) is PQ:
+        x, x_s = x.val_float, x.sigma_float
     else:
-        x = grid
+        x = x
         x_s = 0
     x1 = np.min(x)
     x2 = np.max(x)
@@ -95,6 +99,9 @@ def plot_OLS(grid, values, plot=plt.plot, label=None):
     plot([x1, x2], [y1, y2], color='black',
          linestyle='dashed', zorder=5,
          label='OLS for %s'%label)
+
+    return ols_coefs, ols_errors
+
 
 def OLS(grid, values):
     """
@@ -119,6 +126,16 @@ def OLS(grid, values):
     errors = [sigma_b, sigma_a]
 
     return coefs, errors
+
+
+def get_intersections_with_axes(a, b):
+    """y = ax+b, x = y/a-b/a"""
+    return -b/a, b
+
+
+def get_intersection_of_lines(a1, b1, a2, b2):
+    x = (b2 - b1)/(a1 - a2)
+    return x, a1*x + b1
 
 # def graphical_errors(grid, values):
 #     if type(grid[0]) is PQ:
