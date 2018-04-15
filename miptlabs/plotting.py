@@ -85,12 +85,12 @@ def plot_OLS(x_, y_, plot=plt.plot, label=None):
     :returns (ols_coefs, ols_errors)"""
     x = pqarray(x_)
     y = pqarray(y_)
-    ols_coefs, ols_errors = OLS(x, y)
     if type(x[0]) is PQ:
         x, x_s = x.val_float, x.sigma_float
     else:
         x = x
         x_s = 0
+    ols_coefs, ols_errors = OLS(x, y)
     x1 = np.min(x)
     x2 = np.max(x)
     y1 = ols_coefs[0]*x1 + ols_coefs[1]
@@ -103,26 +103,29 @@ def plot_OLS(x_, y_, plot=plt.plot, label=None):
     return ols_coefs, ols_errors
 
 
-def OLS(grid, values):
+def OLS(x_, y_, add_sigma=True):
     """
     :returns Коэффициенты и погрешности начиная с наивысшей степени.
     """
-    grid = pqarray(grid)
-    values = pqarray(values)
-    if type(grid[0]) is PQ:
-        x, x_s = grid.val_float, grid.sigma_float
+    x_ = pqarray(x_)
+    y_ = pqarray(y_)
+    if type(x_[0]) is PQ:
+        x, x_s = x_.val_float, x_.sigma_float
     else:
-        x = grid
+        x = x_
         x_s = 0
 
-    if type(values[0]) is PQ:
-        y, y_s = values.val_float, values.sigma_float
+    if type(y_[0]) is PQ:
+        y, y_s = y_.val_float, y_.sigma_float
     else:
-        y = values
+        y = y_
         y_s = 0
     coefs = np.polyfit(x, y, deg=1)
     sigma_b = 1/np.sqrt(len(y))*np.sqrt((np.mean(y**2) - np.mean(y)**2)/(np.mean(x**2) - np.mean(x)**2) - coefs[0]**2)
     sigma_a = sigma_b*(np.mean(x**2) - np.mean(x)**2)
+    if add_sigma:
+        sigma_b = np.sqrt(sigma_b**2+np.mean(x_s)**2)
+        sigma_a = np.sqrt(sigma_a**2+np.mean(y_s)**2)
     errors = [sigma_b, sigma_a]
 
     return coefs, errors
@@ -136,6 +139,15 @@ def get_intersections_with_axes(a, b):
 def get_intersection_of_lines(a1, b1, a2, b2):
     x = (b2 - b1)/(a1 - a2)
     return x, a1*x + b1
+
+def get_intersection_of_lines_full(a1, b1, c1, a2, b2, c2):
+    if a1 == 0:
+        tmp = a1, b1, c1
+        a1, b1, c1 = a2, b2, c2
+        a2, b2, c2 = tmp
+    y = (c2*a1-a2*c1)/(b1*a2-a1*b2)
+
+    return (-c1-b1*y)/a1, y
 
 # def graphical_errors(grid, values):
 #     if type(grid[0]) is PQ:
