@@ -1,4 +1,8 @@
-import matplotlib.pyplot as plt
+try:
+    import matplotlib.pyplot as plt
+except ModuleNotFoundError:
+    print('Matplotlib not found')
+
 from .pq import *
 from .arrays import *
 import pandas as pd
@@ -13,12 +17,15 @@ def _get_arr_and_sigmas(values):
 
 
 def plt_pq(grid, values, label=None, color=None, ols=False, grid_x=None,
-           grid_y=None, plot=plt.plot, **kwargs):
+           grid_y=None, plot=None, **kwargs):
     """
     Строит графики. С крестами погрешностей. ols=True рисует ещё и прямую, приближающую значения по МНК.
     Вызовы plt.figure и plt.show должны быть снаружи.
     Можно добавлять подписи к осям и прочее.
     """
+
+    if plot is None:
+        plot = plt.plot
 
     x, x_s, grid = _get_arr_and_sigmas(grid)
     y, y_s, values = _get_arr_and_sigmas(values)
@@ -80,9 +87,13 @@ def plt_pq(grid, values, label=None, color=None, ols=False, grid_x=None,
         plot_OLS(grid, values, plot, label)
 
 
-def plot_OLS(x_, y_, plot=plt.plot, label=None):
+def plot_OLS(x_, y_, plot=None, label=None):
     """Построить график прямой, приближающей точки по МНК, на текущей figure.
     :returns (ols_coefs, ols_errors)"""
+
+    if plot is None:
+        plot = plt.plot
+
     x = pqarray(x_)
     y = pqarray(y_)
     if type(x[0]) is PQ:
