@@ -5,27 +5,18 @@ import sympy as sp
 
 import numpy as np
 import logging as log
-import functools
+import sys
 
-import importlib.util
-#spec = importlib.util.spec_from_file_location("miptlabs", "/full/path/to/miptlabs.py")
-#miptlabs = importlib.util.module_from_spec(spec)
-#spec.loader.exec_module(miptlabs)
-#ml = miptlabs
-
-import miptlabs as ml
-importlib.reload(ml)
-
-import sys, importlib
-importlib.reload(log)
 log.basicConfig(level=log.INFO, format='%(message)s', stream=sys.stdout)
 
-#sp.latex=lambda expr, **settings:ml.PQLatexPrinter(settings).doprint(expr)
-sp.Basic.__str__=lambda expr, **settings:ml.PQStrPrinter(settings).doprint(expr)
-#sp.Basic.__str__=lambda expr, **settings:ml.PQLatexPrinter(settings).doprint(expr)
-#sp.init_printing(latex_printer=ml.PQLatexPrinter)
-#sp.init_printing()
-#sp.Basic.__str__ = lambda self: ml.PQLatexPrinter().doprint(self)
+import miptlabs as ml
+
+# sp.latex=lambda expr, **settings:ml.PQLatexPrinter(settings).doprint(expr)
+sp.Basic.__str__ = lambda expr, **settings: ml.PQStrPrinter(settings).doprint(expr)
+# sp.Basic.__str__=lambda expr, **settings:ml.PQLatexPrinter(settings).doprint(expr)
+# sp.init_printing(latex_printer=ml.PQLatexPrinter)
+# sp.init_printing()
+# sp.Basic.__str__ = lambda self: ml.PQLatexPrinter().doprint(self)
 
 class TestStringMethods(unittest.TestCase):
 
@@ -64,7 +55,7 @@ class TestStringMethods(unittest.TestCase):
         b = ml.PQ(2.0*u.m, sigma=1.0*u.mm)
         c = ml.PQ(3.0*u.m, sigma=1.0*u.mm)
 
-        self.assertEqual(str(a+b), '3.0000±0.0014 m (0.047%)')
+        self.assertEqual(str(a + b), '3.0000±0.0014 m (0.047%)')
         self.assertEqual(str(a*3), '3.000±0.003 m (0.10%)')
         self.assertEqual(str(a*b), '2.0000±0.0022 m**2 (0.11%)')
         self.assertEqual(str(a/b), '(500.0±0.6)*10^-3  (0.11%)')
@@ -123,8 +114,9 @@ class TestStringMethods(unittest.TestCase):
             a = ml.PQ(1.0*u.m, sigma=1.0*u.mm)
             test = ml.PQ(a, sigma=2*u.m)
 
-        #self.assertEqual(e.exception.msg,
+        # self.assertEqual(e.exception.msg,
         #                 'Не пытайтесь передать PQ как val или sigma. Явно пропишите к нему .val')
+
 
 if __name__ == '__main__':
     unittest.main()
