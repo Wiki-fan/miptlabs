@@ -1,5 +1,7 @@
 ## Miptlabs
 [![Build Status](https://travis-ci.org/Wiki-fan/miptlabs.svg?branch=master)](https://travis-ci.org/Wiki-fan/miptlabs)
+[![Maintainability](https://api.codeclimate.com/v1/badges/f536ea351ea6eac694ac/maintainability)](https://codeclimate.com/github/Wiki-fan/miptlabs/maintainability)
+[![Test Coverage](https://api.codeclimate.com/v1/badges/f536ea351ea6eac694ac/test_coverage)](https://codeclimate.com/github/Wiki-fan/miptlabs/test_coverage)
 
 Библиотека для Python, которая умеет в лабы.
 
