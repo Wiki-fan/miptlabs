@@ -1,4 +1,6 @@
 ## Miptlabs
+[![Build Status](https://travis-ci.org/Wiki-fan/miptlabs.svg?branch=master)](https://travis-ci.org/Wiki-fan/miptlabs)
+
 Библиотека для Python, которая умеет в лабы.
 
 Надстройка над Sympy, Numpy и Matplotlib. С Pandas тоже неплохо работает.
