@@ -1,10 +1,25 @@
+env:
+  global:
+    - CC_TEST_REPORTER_ID: 620de10436d0ec306c550cf090f722afc824378576611ecf5d4bf741d576f7f7
+
 language: python
+
 python:
   - 3.6
 
 install:
   - pip install -r requirements.txt
 
+before_script:  # code coverage tool
+  - curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
+  - chmod +x ./cc-test-reporter
+  - ./cc-test-reporter before-build
+
 script:
   - python -m unittest
   - flake8 .
+  - coverage report miptlabs/*
+
+
+after_script:
+  - ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT
