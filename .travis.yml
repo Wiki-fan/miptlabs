@@ -16,10 +16,11 @@ before_script:  # code coverage tool
   - ./cc-test-reporter before-build
 
 script:
-  - python -m unittest
+  - coverage run -m unittest
   - flake8 .
-  - coverage report miptlabs/*
-
 
 after_script:
   - ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT
+
+notifications:
+  email: false
